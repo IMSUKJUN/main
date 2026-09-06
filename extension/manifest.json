@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "GodDaeHee Hub Page View",
+  "version": "0.1.0",
+  "minimum_chrome_version": "111",
+  "description": "Claude 웹 대화를 무한 스크롤 대신 페이지 단위로 나눠서 봅니다.",
+  "permissions": ["storage"],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "GodDaeHee Hub Page View 설정",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "background": {
+    "service_worker": "src/background/service-worker.js"
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": true
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://claude.ai/*"],
+      "css": ["src/content/tokens.css", "src/content/page.css"],
+      "js": [
+        "src/content/constants.js",
+        "src/content/store.js",
+        "src/content/adapter.js",
+        "src/content/paginator.js",
+        "src/content/toolbar.js",
+        "src/content/main.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/content/tokens.css", "src/content/toolbar.css"],
+      "matches": ["https://claude.ai/*"]
+    }
+  ]
+}

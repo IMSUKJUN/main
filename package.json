@@ -1,0 +1,13 @@
+{
+  "name": "goddaehee-hub-page-view",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chrome extension that turns the Claude web conversation scroll into pages.",
+  "type": "module",
+  "scripts": {
+    "test": "node test/pager.test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1"
+  }
+}

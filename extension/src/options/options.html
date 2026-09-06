@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GodDaeHee Hub Page View 설정</title>
+    <link rel="stylesheet" href="../content/tokens.css" />
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="page__header">
+        <h1 class="page__title">GodDaeHee Hub Page View</h1>
+        <p class="page__lede">
+          Claude 웹 대화를 무한 스크롤 대신 페이지 단위로 나눠서 봅니다. 값을 바꾸면 바로 저장되고,
+          열려 있는 Claude 탭에 즉시 반영됩니다.
+        </p>
+      </header>
+
+      <form class="form" id="form" novalidate>
+        <fieldset class="field-group">
+          <legend class="field-group__legend">기본 동작</legend>
+
+          <div class="field field--switch">
+            <input class="field__checkbox" type="checkbox" id="enabled" name="enabled" />
+            <label class="field__label" for="enabled">페이지 보기 켜기</label>
+            <p class="field__help" id="enabled-help">
+              끄면 Claude 웹은 원래의 스크롤 화면으로 돌아갑니다.
+            </p>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="pageSize">한 페이지에 넣을 메시지 수</label>
+            <select class="field__control" id="pageSize" name="pageSize" aria-describedby="pageSize-help">
+              <option value="2">2개씩</option>
+              <option value="4">4개씩</option>
+              <option value="6">6개씩</option>
+              <option value="10">10개씩</option>
+              <option value="20">20개씩</option>
+            </select>
+            <p class="field__help" id="pageSize-help">
+              질문과 답변을 각각 한 개로 셉니다. 6개면 대화 세 번 분량입니다.
+            </p>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="position">도구 막대 위치</label>
+            <select class="field__control" id="position" name="position" aria-describedby="position-help">
+              <option value="bottom-right">오른쪽 아래</option>
+              <option value="bottom-center">가운데 아래</option>
+              <option value="top-right">오른쪽 위</option>
+              <option value="top-center">가운데 위</option>
+            </select>
+            <p class="field__help" id="position-help">
+              입력창이나 사이드바를 가리면 다른 위치로 옮겨 주세요.
+            </p>
+          </div>
+        </fieldset>
+
+        <fieldset class="field-group">
+          <legend class="field-group__legend">읽기 편의</legend>
+
+          <div class="field field--switch">
+            <input class="field__checkbox" type="checkbox" id="followLatest" name="followLatest" />
+            <label class="field__label" for="followLatest">새 답변이 오면 마지막 페이지로 따라가기</label>
+            <p class="field__help">마지막 페이지를 보고 있을 때만 따라갑니다.</p>
+          </div>
+
+          <div class="field field--switch">
+            <input class="field__checkbox" type="checkbox" id="showPageLabel" name="showPageLabel" />
+            <label class="field__label" for="showPageLabel">페이지 첫 메시지 위에 페이지 표시 넣기</label>
+            <p class="field__help">예: 3 / 12 페이지 · 메시지 13–18</p>
+          </div>
+
+          <div class="field field--switch">
+            <input class="field__checkbox" type="checkbox" id="keyboardShortcuts" name="keyboardShortcuts" />
+            <label class="field__label" for="keyboardShortcuts">키보드 단축키 사용</label>
+            <p class="field__help">
+              Alt+Shift+← 이전, Alt+Shift+→ 다음, Alt+Shift+Home 처음, Alt+Shift+End 마지막.
+              입력창에 글을 쓰는 중에는 동작하지 않습니다.
+            </p>
+          </div>
+        </fieldset>
+
+        <fieldset class="field-group">
+          <legend class="field-group__legend">고급</legend>
+
+          <div class="field">
+            <label class="field__label" for="customTurnSelector">메시지 선택자 직접 지정</label>
+            <input
+              class="field__control"
+              type="text"
+              id="customTurnSelector"
+              name="customTurnSelector"
+              spellcheck="false"
+              autocomplete="off"
+              placeholder="[data-test-render-count]"
+              aria-describedby="selector-help selector-error"
+            />
+            <p class="field__help" id="selector-help">
+              Claude 웹 화면 구조가 바뀌어 페이지 나누기가 동작하지 않을 때만 사용합니다. 비워 두면
+              확장이 스스로 찾습니다.
+            </p>
+            <p class="field__error" id="selector-error" hidden>
+              <span aria-hidden="true">!</span>
+              <span data-role="selector-error-text"></span>
+            </p>
+          </div>
+        </fieldset>
+
+        <div class="actions">
+          <button class="btn btn--ghost" type="button" id="reset">기본값으로 되돌리기</button>
+          <p class="actions__status" role="status" aria-live="polite" id="status"></p>
+        </div>
+      </form>
+
+      <section class="notes" aria-labelledby="notes-title">
+        <h2 class="notes__title" id="notes-title">알아 두면 좋은 점</h2>
+        <ul class="notes__list">
+          <li>페이지에 없는 메시지는 화면에서 빠지므로 브라우저 찾기(Ctrl+F)에도 잡히지 않습니다. 도구 막대의 전체 보기를 켜면 다시 잡힙니다.</li>
+          <li>인쇄할 때는 페이지 나누기와 상관없이 대화 전체가 나옵니다.</li>
+          <li>Claude 웹의 화면 구조가 바뀌면 페이지 나누기가 멈출 수 있습니다. 이때 도구 막대에 오류 상태와 다시 찾기 단추가 나타납니다.</li>
+        </ul>
+      </section>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

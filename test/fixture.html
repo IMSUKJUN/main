@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>Pager fixture</title>
+    <link rel="stylesheet" href="../extension/src/content/tokens.css" />
+    <link rel="stylesheet" href="../extension/src/content/page.css" />
+    <style>
+      body { margin: 0; font-family: sans-serif; }
+      .scroll { height: 420px; overflow-y: auto; padding: 16px; }
+      .list > * { padding: 12px; border-bottom: 1px solid #ddd; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="scroll">
+        <div class="list">
+          <div data-test-render-count="1"><div data-testid="user-message">질문 1</div></div>
+          <div data-test-render-count="2"><div class="font-claude-message">답변 1</div></div>
+          <div data-test-render-count="3"><div data-testid="user-message">질문 2</div></div>
+          <div data-test-render-count="4"><div class="font-claude-message">답변 2</div></div>
+          <div data-test-render-count="5"><div data-testid="user-message">질문 3</div></div>
+          <div data-test-render-count="6"><div class="font-claude-message">답변 3</div></div>
+          <div data-test-render-count="7"><div data-testid="user-message">질문 4</div></div>
+          <div data-test-render-count="8"><div class="font-claude-message">답변 4</div></div>
+          <div data-test-render-count="9"><div data-testid="user-message">질문 5</div></div>
+          <div data-test-render-count="10"><div class="font-claude-message">답변 5</div></div>
+          <div data-test-render-count="11"><div data-testid="user-message">질문 6</div></div>
+          <div data-test-render-count="12"><div class="font-claude-message">답변 6</div></div>
+          <div data-test-render-count="13"><div data-testid="user-message">질문 7</div></div>
+          <div data-test-render-count="14"><div class="font-claude-message">답변 7</div></div>
+        </div>
+      </div>
+      <textarea id="composer" rows="2" aria-label="입력"></textarea>
+    </main>
+    <script src="chrome-stub.js"></script>
+    <script src="../extension/src/content/constants.js"></script>
+    <script src="../extension/src/content/store.js"></script>
+    <script src="../extension/src/content/adapter.js"></script>
+    <script src="../extension/src/content/paginator.js"></script>
+    <script src="../extension/src/content/toolbar.js"></script>
+    <script src="../extension/src/content/main.js"></script>
+  </body>
+</html>

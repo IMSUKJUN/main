@@ -1,0 +1,193 @@
+/*
+ * GodDaeHee Hub — design tokens
+ * 1) Primitive layer: foundation values, copied verbatim from the design system.
+ * 2) Semantic layer: role names used by components. Components must only read
+ *    semantic tokens; raw values and one-off exceptions are prohibited.
+ * All names are prefixed with --gdh- so they cannot collide with host page vars.
+ */
+
+:host,
+:root {
+  /* --- Primitive: typography --- */
+  --gdh-font-family-primary: "Noto Sans KR";
+  --gdh-font-family-stack: "Noto Sans KR", sans-serif, Arial, Helvetica, sans-serif;
+  --gdh-font-size-xs: 14px;
+  --gdh-font-size-sm: 16px;
+  --gdh-font-size-md: 18px;
+  --gdh-font-size-lg: 24px;
+  --gdh-font-size-xl: 48px;
+  --gdh-font-weight-base: 400;
+  /* Approved extension: a single strong weight for actionable labels. */
+  --gdh-font-weight-strong: 600;
+  --gdh-line-height-base: 24px;
+
+  /* --- Primitive: color --- */
+  --gdh-color-text-primary: #171717;
+  --gdh-color-text-secondary: lab(35.6337 -1.58697 -10.8425);
+  --gdh-color-text-tertiary: lab(7.78673 1.82345 -15.0537);
+  --gdh-color-text-inverse: lab(48.0876 -2.03595 -16.5814);
+  --gdh-color-surface-base: #000000;
+  --gdh-color-surface-muted: #ffffff;
+  --gdh-color-surface-raised: #6366f1;
+  --gdh-color-surface-strong: #f8fafc;
+  --gdh-color-border-muted: lab(91.7353 -0.998765 -4.76968);
+
+  /* --- Primitive: space --- */
+  --gdh-space-1: 4px;
+  --gdh-space-2: 6px;
+  --gdh-space-3: 8px;
+  --gdh-space-4: 10px;
+  --gdh-space-5: 12px;
+  --gdh-space-6: 16px;
+  --gdh-space-7: 20px;
+  --gdh-space-8: 24px;
+
+  /* --- Primitive: radius --- */
+  --gdh-radius-xs: 6px;
+  --gdh-radius-sm: 8px;
+  --gdh-radius-md: 32px;
+  --gdh-radius-lg: 16777200px;
+
+  /* --- Primitive: elevation --- */
+  --gdh-shadow-1: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px,
+    rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px,
+    rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.1) 0px 1px 2px -1px;
+  --gdh-shadow-2: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px,
+    rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px,
+    oklab(0.585387 0.0253055 -0.202469 / 0.25) 0px 10px 15px -3px,
+    oklab(0.585387 0.0253055 -0.202469 / 0.25) 0px 4px 6px -4px;
+  --gdh-shadow-3: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px,
+    rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px,
+    oklab(0.585387 0.0253055 -0.202469 / 0.3) 0px 10px 15px -3px,
+    oklab(0.585387 0.0253055 -0.202469 / 0.3) 0px 4px 6px -4px;
+
+  /* --- Primitive: motion --- */
+  --gdh-motion-duration-instant: 150ms;
+  --gdh-motion-duration-fast: 200ms;
+  --gdh-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* --- Semantic: surface --- */
+  --gdh-surface-toolbar: var(--gdh-color-surface-muted);
+  --gdh-surface-sunken: var(--gdh-color-surface-strong);
+  --gdh-surface-hover: color-mix(in oklab, var(--gdh-color-surface-strong) 70%, var(--gdh-color-border-muted));
+  --gdh-surface-active: color-mix(in oklab, var(--gdh-color-surface-strong) 40%, var(--gdh-color-border-muted));
+
+  /* --- Semantic: accent (derived from surface.raised for AA text contrast) --- */
+  --gdh-accent: color-mix(in oklab, var(--gdh-color-surface-raised) 82%, var(--gdh-color-surface-base));
+  --gdh-accent-hover: color-mix(in oklab, var(--gdh-color-surface-raised) 70%, var(--gdh-color-surface-base));
+  --gdh-accent-active: color-mix(in oklab, var(--gdh-color-surface-raised) 58%, var(--gdh-color-surface-base));
+  --gdh-accent-soft: color-mix(in oklab, var(--gdh-color-surface-raised) 10%, var(--gdh-color-surface-muted));
+  --gdh-on-accent: var(--gdh-color-surface-muted);
+
+  /* --- Semantic: text --- */
+  --gdh-text-strong: var(--gdh-color-text-primary);
+  --gdh-text-muted: var(--gdh-color-text-secondary);
+  --gdh-text-disabled: color-mix(in oklab, var(--gdh-color-text-secondary) 68%, var(--gdh-color-surface-muted));
+
+  /* --- Semantic: line --- */
+  --gdh-border: var(--gdh-color-border-muted);
+  --gdh-border-strong: color-mix(in oklab, var(--gdh-color-border-muted) 45%, var(--gdh-color-text-secondary));
+  --gdh-focus-ring: var(--gdh-accent-active);
+  --gdh-focus-ring-offset: var(--gdh-color-surface-muted);
+
+  /* --- Semantic: status (no extra hue is introduced; status is carried by
+         text + icon + border weight, never by color alone) --- */
+  --gdh-status-surface: var(--gdh-color-surface-strong);
+  --gdh-status-text: var(--gdh-color-text-primary);
+  --gdh-status-border: var(--gdh-border-strong);
+
+  /* --- Semantic: layout --- */
+  --gdh-control-size: 44px;
+  --gdh-z-overlay: 2147483000;
+}
+
+/*
+ * Dark palette. It is applied in two ways and the two lists must stay identical:
+ *  1. before the controller runs, from the operating-system colour scheme;
+ *  2. afterwards, from data-gdh-theme, which the controller sets by reading the
+ *     host page's own background — Claude's theme switch is independent of the
+ *     OS setting, and the toolbar must follow the page it sits on.
+ */
+@media (prefers-color-scheme: dark) {
+  :host(:not([data-gdh-theme="light"])),
+  :root:not([data-gdh-theme="light"]) {
+
+    --gdh-surface-toolbar: var(--gdh-color-surface-base);
+    --gdh-surface-sunken: color-mix(in oklab, var(--gdh-color-surface-muted) 10%, var(--gdh-color-surface-base));
+    --gdh-surface-hover: color-mix(in oklab, var(--gdh-color-surface-muted) 16%, var(--gdh-color-surface-base));
+    --gdh-surface-active: color-mix(in oklab, var(--gdh-color-surface-muted) 24%, var(--gdh-color-surface-base));
+
+    --gdh-accent: color-mix(in oklab, var(--gdh-color-surface-raised) 68%, var(--gdh-color-surface-muted));
+    --gdh-accent-hover: color-mix(in oklab, var(--gdh-color-surface-raised) 56%, var(--gdh-color-surface-muted));
+    --gdh-accent-active: color-mix(in oklab, var(--gdh-color-surface-raised) 44%, var(--gdh-color-surface-muted));
+    --gdh-accent-soft: color-mix(in oklab, var(--gdh-color-surface-raised) 26%, var(--gdh-color-surface-base));
+    --gdh-on-accent: var(--gdh-color-surface-base);
+
+    --gdh-text-strong: var(--gdh-color-surface-muted);
+    --gdh-text-muted: color-mix(in oklab, var(--gdh-color-surface-muted) 74%, var(--gdh-color-surface-base));
+    --gdh-text-disabled: color-mix(in oklab, var(--gdh-color-surface-muted) 52%, var(--gdh-color-surface-base));
+
+    --gdh-border: color-mix(in oklab, var(--gdh-color-surface-muted) 22%, var(--gdh-color-surface-base));
+    --gdh-border-strong: color-mix(in oklab, var(--gdh-color-surface-muted) 55%, var(--gdh-color-surface-base));
+    --gdh-focus-ring: color-mix(in oklab, var(--gdh-color-surface-raised) 40%, var(--gdh-color-surface-muted));
+    --gdh-focus-ring-offset: var(--gdh-color-surface-base);
+
+    --gdh-status-surface: color-mix(in oklab, var(--gdh-color-surface-muted) 12%, var(--gdh-color-surface-base));
+    --gdh-status-text: var(--gdh-color-surface-muted);
+    --gdh-status-border: var(--gdh-border-strong);
+  }
+}
+
+:host([data-gdh-theme="dark"]),
+:root[data-gdh-theme="dark"] {
+
+  --gdh-surface-toolbar: var(--gdh-color-surface-base);
+  --gdh-surface-sunken: color-mix(in oklab, var(--gdh-color-surface-muted) 10%, var(--gdh-color-surface-base));
+  --gdh-surface-hover: color-mix(in oklab, var(--gdh-color-surface-muted) 16%, var(--gdh-color-surface-base));
+  --gdh-surface-active: color-mix(in oklab, var(--gdh-color-surface-muted) 24%, var(--gdh-color-surface-base));
+
+  --gdh-accent: color-mix(in oklab, var(--gdh-color-surface-raised) 68%, var(--gdh-color-surface-muted));
+  --gdh-accent-hover: color-mix(in oklab, var(--gdh-color-surface-raised) 56%, var(--gdh-color-surface-muted));
+  --gdh-accent-active: color-mix(in oklab, var(--gdh-color-surface-raised) 44%, var(--gdh-color-surface-muted));
+  --gdh-accent-soft: color-mix(in oklab, var(--gdh-color-surface-raised) 26%, var(--gdh-color-surface-base));
+  --gdh-on-accent: var(--gdh-color-surface-base);
+
+  --gdh-text-strong: var(--gdh-color-surface-muted);
+  --gdh-text-muted: color-mix(in oklab, var(--gdh-color-surface-muted) 74%, var(--gdh-color-surface-base));
+  --gdh-text-disabled: color-mix(in oklab, var(--gdh-color-surface-muted) 52%, var(--gdh-color-surface-base));
+
+  --gdh-border: color-mix(in oklab, var(--gdh-color-surface-muted) 22%, var(--gdh-color-surface-base));
+  --gdh-border-strong: color-mix(in oklab, var(--gdh-color-surface-muted) 55%, var(--gdh-color-surface-base));
+  --gdh-focus-ring: color-mix(in oklab, var(--gdh-color-surface-raised) 40%, var(--gdh-color-surface-muted));
+  --gdh-focus-ring-offset: var(--gdh-color-surface-base);
+
+  --gdh-status-surface: color-mix(in oklab, var(--gdh-color-surface-muted) 12%, var(--gdh-color-surface-base));
+  --gdh-status-text: var(--gdh-color-surface-muted);
+  --gdh-status-border: var(--gdh-border-strong);
+}
+
+/* Forced-colors: hand every decorative value back to the OS palette. */
+@media (forced-colors: active) {
+  :host,
+  :root {
+    --gdh-surface-toolbar: Canvas;
+    --gdh-surface-sunken: Canvas;
+    --gdh-surface-hover: Canvas;
+    --gdh-surface-active: Canvas;
+    --gdh-accent: ButtonFace;
+    --gdh-accent-hover: ButtonFace;
+    --gdh-accent-active: ButtonFace;
+    --gdh-accent-soft: Canvas;
+    --gdh-on-accent: ButtonText;
+    --gdh-text-strong: CanvasText;
+    --gdh-text-muted: CanvasText;
+    --gdh-text-disabled: GrayText;
+    --gdh-border: CanvasText;
+    --gdh-border-strong: CanvasText;
+    --gdh-focus-ring: Highlight;
+    --gdh-focus-ring-offset: Canvas;
+    --gdh-status-surface: Canvas;
+    --gdh-status-text: CanvasText;
+    --gdh-status-border: CanvasText;
+  }
+}

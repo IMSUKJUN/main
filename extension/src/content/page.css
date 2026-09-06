@@ -1,0 +1,58 @@
+/*
+ * Document-scope rules. These are the only styles this extension writes into
+ * the host page; every other style lives inside the toolbar shadow root.
+ * Scope is limited to attributes this extension owns (data-gdh-pager-*).
+ */
+
+/* Turns that are not on the current page are removed from layout AND from the
+ * accessibility tree, so screen readers and Tab order match what is painted. */
+[data-gdh-pager-hidden="true"] {
+  display: none !important;
+}
+
+/* Focus target that receives focus after a page change. */
+[data-gdh-pager-anchor] {
+  scroll-margin-block-start: var(--gdh-space-8, 24px);
+}
+
+[data-gdh-pager-anchor]:focus-visible {
+  outline: 2px solid var(--gdh-focus-ring, #4b4fd6) !important;
+  outline-offset: 4px !important;
+  border-radius: var(--gdh-radius-sm, 8px);
+}
+
+/* Page caption rendered above the first turn of the current page. */
+[data-gdh-pager-anchor][data-gdh-pager-label]::before {
+  content: attr(data-gdh-pager-label);
+  display: block;
+  box-sizing: border-box;
+  margin: 0 0 var(--gdh-space-5, 12px);
+  padding: var(--gdh-space-1, 4px) var(--gdh-space-5, 12px);
+  border: 1px solid var(--gdh-border, #e2e6ea);
+  border-radius: var(--gdh-radius-lg, 999px);
+  width: fit-content;
+  font-family: var(--gdh-font-family-stack, sans-serif);
+  font-size: var(--gdh-font-size-xs, 14px);
+  font-weight: var(--gdh-font-weight-base, 400);
+  line-height: var(--gdh-line-height-base, 24px);
+  color: var(--gdh-text-muted, #4a5560);
+  background: var(--gdh-surface-sunken, #f8fafc);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Keep the last turn clear of the floating toolbar. */
+[data-gdh-pager-scroller="true"] {
+  scroll-padding-block-end: 96px;
+}
+
+/* Printing and browser find must never be blocked by pagination:
+ * printing always renders the whole conversation. */
+@media print {
+  [data-gdh-pager-hidden="true"] {
+    display: revert !important;
+  }
+  [data-gdh-pager-anchor][data-gdh-pager-label]::before {
+    content: none;
+  }
+}
