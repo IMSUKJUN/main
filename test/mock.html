@@ -2,8 +2,12 @@
 <html lang="ko"><head><meta charset="utf-8">
 <title>claude.ai 대화창 모사</title>
 <style>
+  /* 실제 claude.ai 와 같은 형태: 색 변수가 색이 아니라 HSL 숫자 세 개다.
+     확장이 이걸 그대로 색으로 쓰면 투명해진다. 그 회귀를 여기서 잡는다. */
+  :root{--bg-100:48 33.3% 97.1%;--bg-000:0 0% 100%;--border-300:30 3.3% 11.8%;
+        --text-100:60 2.6% 7.6%;--text-400:51 3.1% 43.7%}
   html,body{margin:0;height:100%;font:16px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif;
-            background:#faf9f7;color:#1f1e1c}
+            background:hsl(var(--bg-100));color:hsl(var(--text-100))}
   .app{height:100%;display:grid;grid-template-rows:52px 1fr 96px}
   .head{display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #eceae6;font-size:14px}
   .pane{min-height:0;display:flex;overflow:clip;contain:strict}

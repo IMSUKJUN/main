@@ -83,7 +83,17 @@ const state = await page.evaluate(() => {
     칩: document.querySelectorAll('.cpv-chip').length,
     도구줄: document.querySelectorAll('.cpv-toolline').length,
     코드복원: document.querySelectorAll('.cpv-code').length,
-    빈코드블록: document.querySelectorAll('.cpv-card diffs-container').length
+    빈코드블록: document.querySelectorAll('.cpv-card diffs-container').length,
+    덮개배경: getComputedStyle(root).backgroundColor,
+    덮개불투명: !/rgba\([^)]*,\s*0(\.\d+)?\)/.test(getComputedStyle(root).backgroundColor),
+    앱대화보임: getComputedStyle(document.querySelector('[data-testid="epitaxy-virtual-transcript"]')).visibility,
+    화면중앙에잡히는것: (() => {
+      const el = document.elementFromPoint(innerWidth / 2, innerHeight / 2);
+      if (!el) return null;
+      return el.closest('.cpv-root') ? '페이지 보기 레이어'
+           : el.closest('[data-testid="epitaxy-virtual-transcript"]') ? '원본 대화(문제)'
+           : (el.className || el.tagName).toString().slice(0, 30);
+    })()
   };
 });
 
@@ -172,6 +182,7 @@ await page.click('.cpv-toggle');
 await page.waitForTimeout(300);
 const afterOff = await page.evaluate(() => ({
   덮개남음: !!document.querySelector('.cpv-root'),
+  원본대화보임: getComputedStyle(document.querySelector('[data-testid="epitaxy-virtual-transcript"]')).visibility,
   원본행: document.querySelectorAll('[data-testid="transcript-row"]').length
 }));
 await page.screenshot({ path: path.join(shots, '06-after-off.png') });

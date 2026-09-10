@@ -4,20 +4,34 @@
   position: fixed;
   inset: 0;
   z-index: 2147483000;
+  /* 덮개 밖(사이드바·입력창)은 그대로 쓸 수 있게 통과시킨다. */
+  pointer-events: none;
 }
 
 .cpv-root {
   position: fixed;
   overflow: hidden;
-  background: var(--cpv-bg);
-  --cpv-bg: var(--bg-100, #faf9f7);
-  --cpv-surface: var(--bg-000, #ffffff);
-  --cpv-border: var(--border-300, #e5e3df);
-  --cpv-text: var(--text-100, #1f1e1c);
-  --cpv-muted: var(--text-400, #8b8781);
+  pointer-events: auto;
+  isolation: isolate;
+  /* 색은 view.js 가 실제로 그려진 값을 읽어 넣는다.
+     앱 변수(--bg-100 등)는 색이 아니라 HSL 숫자 세 개라 그대로 쓰면 투명해진다. */
+  --cpv-bg: #faf9f7;
+  --cpv-surface: #ffffff;
+  --cpv-border: #e5e3df;
+  --cpv-text: #1f1e1c;
+  --cpv-muted: #8b8781;
   --cpv-veil-color: var(--cpv-bg);
+  background: var(--cpv-bg);
   color: var(--cpv-text);
   font: inherit;
+}
+
+/* 페이지 보기 동안에는 원본 대화가 보이면 안 된다.
+   앱 DOM 을 건드리지 않고 규칙으로만 감춘다. 자리는 그대로 두어야
+   가상 스크롤이 계속 행 높이를 잴 수 있다. */
+html.cpv-on [data-testid="epitaxy-virtual-transcript"],
+html.cpv-on [role="feed"][data-autoscroll-container] {
+  visibility: hidden !important;
 }
 
 /* --- 카드 트랙 --- */
@@ -196,18 +210,18 @@
   bottom: 18px;
   z-index: 2147483100;
   padding: 8px 14px;
-  border: 1px solid var(--border-300, #e5e3df);
+  border: 1px solid rgba(0, 0, 0, .14);
   border-radius: 999px;
-  background: var(--bg-000, #fff);
-  color: var(--text-100, #1f1e1c);
+  background: #fff;
+  color: #1f1e1c;
   font: inherit;
   font-size: 13px;
   cursor: pointer;
   box-shadow: 0 2px 10px rgba(0, 0, 0, .08);
 }
 .cpv-toggle.is-on {
-  background: var(--text-100, #1f1e1c);
-  color: var(--bg-000, #fff);
+  background: #1f1e1c;
+  color: #fff;
 }
 
 .cpv-progress {

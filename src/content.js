@@ -31,6 +31,7 @@ window.CPV = window.CPV || {};
     button.classList.add('is-on');
     button.textContent = '스크롤 보기';
 
+    document.documentElement.classList.add('cpv-on');
     host = document.createElement('div');
     host.className = 'cpv-host';
     document.body.appendChild(host);
@@ -56,6 +57,7 @@ window.CPV = window.CPV || {};
 
   function turnOff() {
     on = false;
+    document.documentElement.classList.remove('cpv-on');
     button.classList.remove('is-on');
     button.textContent = '페이지 보기';
     N.detach();
