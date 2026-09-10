@@ -31,7 +31,6 @@ window.CPV = window.CPV || {};
     button.classList.add('is-on');
     button.textContent = '스크롤 보기';
 
-    document.documentElement.classList.add('cpv-on');
     host = document.createElement('div');
     host.className = 'cpv-host';
     document.body.appendChild(host);
@@ -48,6 +47,8 @@ window.CPV = window.CPV || {};
     });
     progress.remove();
 
+    // 다 읽은 뒤에 원본 대화를 감춘다.
+    document.documentElement.classList.add('cpv-on');
     const cov = H.coverage();
     // 몇 행을 읽었는지 잠깐 알려 준다. 빠진 게 있으면 같이 보여 준다.
     flash(cov.빠진개수
@@ -107,7 +108,7 @@ window.CPV = window.CPV || {};
     n.className = 'cpv-progress';
     n.textContent = text;
     document.body.appendChild(n);
-    setTimeout(() => n.remove(), 2200);
+    setTimeout(() => n.remove(), 1800);
   }
 
   window.addEventListener('keydown', e => {
@@ -122,4 +123,17 @@ window.CPV = window.CPV || {};
   // 테스트에서 부르기 위해 열어 둔다.
   CPV.toggle = toggle;
   CPV.isOn = () => on;
+  // 콘솔에서 수집 상태를 확인할 때 쓴다.
+  CPV.report = () => {
+    const cov = H.coverage();
+    const byType = {};
+    for (const r of H.records()) byType[r.type] = (byType[r.type] || 0) + 1;
+    const out = { ...cov, 종류별: byType, 페이지수: Number(V.root?.dataset.pages || 0) };
+    console.table(H.records().map(r => ({
+      행: r.index, 종류: r.type, 높이: r.height, 위치: r.offset,
+      샷키: r.shot.entryKey ? String(r.shot.entryKey).slice(0, 10) : null
+    })));
+    console.log(JSON.stringify(out, null, 1));
+    return out;
+  };
 })();

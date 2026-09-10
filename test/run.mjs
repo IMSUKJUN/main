@@ -48,7 +48,11 @@ const ctx = await chromium.launchPersistentContext(
 const page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(String(e.message).split('\n')[0]));
-page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text().slice(0, 140)); });
+page.on('console', m => {
+  const t = m.text();
+  if (t.startsWith('DBG')) console.log(t);
+  else if (m.type() === 'error') errors.push('console: ' + t.slice(0, 140));
+});
 
 await page.goto(`http://127.0.0.1:${PORT}/test/mock.html`);
 await page.waitForFunction(() => window.__ready === true);
@@ -59,8 +63,9 @@ const mounted = await page.evaluate(() => document.querySelectorAll('[data-testi
 await page.screenshot({ path: path.join(shots, '01-before.png') });
 
 await page.click('.cpv-toggle');
-await page.waitForFunction(() => document.querySelectorAll('.cpv-strip').length > 0, null, { timeout: 60000 });
-await page.waitForTimeout(600);
+await page.waitForFunction(() => document.querySelectorAll('.cpv-strip').length > 0, null, { timeout: 120000 });
+await page.waitForFunction(() => !document.querySelector('.cpv-progress'), null, { timeout: 8000 });
+await page.waitForTimeout(300);
 await page.screenshot({ path: path.join(shots, '02-page-view.png') });
 
 const state = await page.evaluate(() => {

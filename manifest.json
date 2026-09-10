@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Claude Page View",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Claude 대화의 세로 스크롤을 가로 페이지 구조로 바꿔 보여준다.",
   "permissions": ["storage"],
   "host_permissions": ["https://claude.ai/*"],

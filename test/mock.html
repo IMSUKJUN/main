@@ -11,7 +11,9 @@
   .app{height:100%;display:grid;grid-template-rows:52px 1fr 96px}
   .head{display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #eceae6;font-size:14px}
   .pane{min-height:0;display:flex;overflow:clip;contain:strict}
-  .feed{flex:1;height:100%;overflow-y:auto;overflow-x:hidden;contain:strict;overflow-anchor:none}
+  .feed{flex:1;height:100%;overflow-y:auto;overflow-x:hidden;contain:strict;overflow-anchor:none;
+       /* 실제 화면의 html.scroll-smooth 와 같은 조건. 위치를 바로 못 짚게 만든다. */
+       scroll-behavior:smooth}
   .sizer{position:relative}
   .row{display:flow-root;position:relative}
   .col{margin:0 auto;max-width:768px;padding:0 32px}
@@ -47,7 +49,11 @@ const SHOTS = [
   { q: '단순 텍스트만이 아니라 표와 코드블록이 섞여 있는데도 되나?',
     tool: '실행됨 · 명령 15개 (2개 실패)', paras: 14, marker: '세션 재개됨' },
   { q: '가상 스크롤 상태는 어떻게 확인하지?', tool: '실행됨 · 명령 4개', paras: 34 },
-  { q: '도구 내역은 본문 오른쪽에 두는 게 맞겠다.', tool: '실행됨 · 명령 7개', paras: 9 }
+  { q: '도구 내역은 본문 오른쪽에 두는 게 맞겠다.', tool: '실행됨 · 명령 7개', paras: 9 },
+  { q: '페이지 구분선과 그림자도 넣어줘.', tool: '실행됨 · 명령 3개', paras: 18 },
+  { q: '프롬프트가 상단에 고정되면 좋겠다.', tool: '실행됨 · 명령 9개', paras: 22, marker: '세션 재개됨' },
+  { q: '스크롤 기능도 필요하다.', tool: '실행됨 · 명령 6개', paras: 12 },
+  { q: '대화를 다 못 읽는 것 같은데 확인해줘.', tool: '실행됨 · 명령 11개', paras: 30 }
 ];
 const LOREM = '가나다라마바사아자차카타파하 아야어여오요우유으이 ';
 
@@ -164,7 +170,23 @@ function renderWindow() {
 measureAll();
 buildOffsets();
 renderWindow();
-feed.addEventListener('scroll', renderWindow);
+// 실제 앱은 React 라 스크롤 직후가 아니라 한 박자 뒤에 행을 붙인다.
+let renderTimer = null;
+function renderLater() {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(renderWindow, 220);
+}
+feed.addEventListener('scroll', renderLater);
+
+// 실제 화면처럼 맨 아래로 끌어당기는 동작(data-autoscroll-container).
+// 아래에 붙어 있는 동안 위로 옮기려 하면 한 번 되돌린다.
+let pinned = true;
+feed.scrollTop = feed.scrollHeight;
+feed.addEventListener('scroll', () => {
+  const atBottom = feed.scrollHeight - feed.clientHeight - feed.scrollTop < 4;
+  if (atBottom) { pinned = true; return; }
+  if (pinned) { pinned = false; feed.scrollTop = feed.scrollHeight; }
+});
 
 window.__mock = { rows: ROWS.length, total: offsets[ROWS.length] };
 window.__ready = true;
