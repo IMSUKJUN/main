@@ -109,19 +109,46 @@ CPV.harvest = (() => {
     await goTo(feed, Math.max(0, feed.scrollHeight - feed.clientHeight));
   }
 
+  // 빠진 줄만 다시 줍는다. 켠 뒤에 프로그램이 스스로 부른다.
+  async function fillMissing(onProgress) {
+    const feed = S.feed();
+    if (!feed || !missing().length) return records();
+    const start = feed.scrollTop;
+    const savedFeed = feed.style.scrollBehavior;
+    const savedRoot = document.documentElement.style.scrollBehavior;
+    feed.style.scrollBehavior = 'auto';
+    document.documentElement.style.scrollBehavior = 'auto';
+    try {
+      for (let round = 0; round < 3 && missing().length; round++) {
+        await fillGaps(feed, onProgress);
+      }
+      lastGaps = missing();
+    } finally {
+      feed.style.scrollBehavior = savedFeed;
+      document.documentElement.style.scrollBehavior = savedRoot;
+      await goTo(feed, start);
+    }
+    return records();
+  }
+
   // 빠진 번호가 있으면 이웃 행의 위치를 보고 그 자리로 직접 간다.
   async function fillGaps(feed, onProgress) {
     const gaps = missing();
+    const h = feed.clientHeight;
     for (const i of gaps) {
       const below = nearest(i, -1);
       const above = nearest(i, +1);
-      let target;
-      if (below && above) target = (below.offset + below.height + above.offset) / 2;
-      else if (below) target = below.offset + below.height;
-      else if (above) target = Math.max(0, above.offset - feed.clientHeight);
+      let at;
+      if (below && above) at = (below.offset + below.height + above.offset) / 2;
+      else if (below) at = below.offset + below.height;
+      else if (above) at = Math.max(0, above.offset - h);
       else continue;
-      await goTo(feed, Math.max(0, target - feed.clientHeight / 2));
-      onProgress?.(0.99);
+      // 어느 자리에서 붙는지는 앱이 정하므로 그 행 주변 몇 지점을 차례로 시도한다.
+      for (const off of [h * 0.5, h * 0.9, h * 0.1, 0]) {
+        if (store.has(i)) break;
+        await goTo(feed, Math.max(0, at - off));
+        onProgress?.(0.99);
+      }
     }
   }
 
@@ -141,7 +168,9 @@ CPV.harvest = (() => {
   // 기다렸다가 다음으로 넘어간다.
   async function goTo(feed, top) {
     let prev = '';
+    let round = 0;
     for (const ms of config.harvestWaits) {
+      round++;
       if (Math.abs(feed.scrollTop - top) > 2) feed.scrollTop = top;
       await wait(ms);
       captureMounted();
@@ -149,7 +178,9 @@ CPV.harvest = (() => {
       const filled = viewportFilled(feed);
       const nowKey = mountedKey();
       // 자리에 도착했고, 그 자리에 행이 실제로 채워졌고, 더 안 바뀌면 다음으로 간다.
-      if (arrived && filled && nowKey === prev) break;
+      // 옮긴 직후에는 이전 자리의 행이 아직 남아 있어 "채워짐"으로 보인다.
+      // 그래서 최소 세 번은 확인한 뒤에만 넘어간다.
+      if (round >= 3 && arrived && filled && nowKey === prev) break;
       prev = nowKey;
     }
     return feed.scrollTop;
@@ -203,5 +234,5 @@ CPV.harvest = (() => {
 
   function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  return { all, captureMounted, records, clear, coverage, missing };
+  return { all, fillMissing, captureMounted, records, clear, coverage, missing };
 })();

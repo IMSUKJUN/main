@@ -49,28 +49,60 @@ window.CPV = window.CPV || {};
 
     // 다 읽은 뒤에 원본 대화를 감춘다.
     document.documentElement.classList.add('cpv-on');
-    const cov = H.coverage();
-    // 몇 행을 읽었는지 잠깐 알려 준다. 빠진 게 있으면 같이 보여 준다.
-    flash(cov.빠진개수
-      ? `${cov.수집한행}개 읽음 · 못 읽은 줄 ${cov.빠진개수}개`
-      : `${cov.수집한행}개 읽음`);
     V.render(records);
-    if (V.root) {
-      V.root.dataset.rows = String(cov.수집한행);
-      V.root.dataset.gaps = String(cov.빠진개수);
-      V.root.dataset.range = (cov.번호범위 || []).join('-');
-    }
+    markCoverage();
+    flash(`${H.coverage().수집한행}개 읽음`);
+
+    // 못 읽은 줄이 있으면 사용자가 시키지 않아도 스스로 다시 줍는다.
+    await autoFill();
     N.attach(V.root);
     V.root.addEventListener('cpv:rerender', () => V.render(H.records()));
     watch();
     window.addEventListener('resize', onResize);
   }
 
+  // 빠진 줄을 스스로 다시 읽는다. 두 번까지 시도하고, 그래도 남으면 눌러서
+  // 다시 시도할 수 있는 표시를 남긴다.
+  async function autoFill() {
+    for (let round = 0; round < 2; round++) {
+      if (!on || !H.missing().length) break;
+      showNote(`못 읽은 줄 ${H.missing().length}개 다시 읽는 중…`, null);
+      await H.fillMissing();
+      if (!on) return;
+      V.render(H.records());
+      markCoverage();
+    }
+    const left = H.missing().length;
+    if (!on) return;
+    if (left) showNote(`못 읽은 줄 ${left}개`, () => autoFill());
+    else hideNote();
+  }
+
+  function markCoverage() {
+    const cov = H.coverage();
+    if (!V.root) return;
+    V.root.dataset.rows = String(cov.수집한행);
+    V.root.dataset.total = String(cov.전체행);
+    V.root.dataset.gaps = String(cov.빠진개수);
+    V.root.dataset.range = (cov.번호범위 || []).join('-');
+  }
+
+  let note = null;
+  function showNote(text, onClick) {
+    if (!host) return;
+    if (!note) { note = document.createElement('button'); note.className = 'cpv-note'; host.appendChild(note); }
+    note.textContent = text + (onClick ? ' · 다시 읽기' : '');
+    note.onclick = onClick || null;
+    note.disabled = !onClick;
+  }
+  function hideNote() { note?.remove(); note = null; }
+
   function turnOff() {
     on = false;
     document.documentElement.classList.remove('cpv-on');
     button.classList.remove('is-on');
     button.textContent = '페이지 보기';
+    hideNote();
     N.detach();
     V.destroy();
     host?.remove();

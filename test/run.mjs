@@ -65,6 +65,11 @@ await page.screenshot({ path: path.join(shots, '01-before.png') });
 await page.click('.cpv-toggle');
 await page.waitForFunction(() => document.querySelectorAll('.cpv-strip').length > 0, null, { timeout: 120000 });
 await page.waitForFunction(() => !document.querySelector('.cpv-progress'), null, { timeout: 8000 });
+// 못 읽은 줄을 스스로 다시 읽는 과정이 끝날 때까지 기다린다
+await page.waitForFunction(() => {
+  const n = document.querySelector('.cpv-note');
+  return !n || !n.textContent.includes('다시 읽는 중');
+}, null, { timeout: 30000 });
 await page.waitForTimeout(300);
 await page.screenshot({ path: path.join(shots, '02-page-view.png') });
 
@@ -87,8 +92,9 @@ const state = await page.evaluate(() => {
     말풍선있는샷: new Set([...document.querySelectorAll('.cpv-bubble')].map(b => b.dataset.shot)).size,
     본문카드묶음: document.querySelectorAll('.cpv-strip[data-kind="body"]').length,
     카운터: document.querySelector('.cpv-counter')?.textContent || null,
-    수집한행: Number(root.dataset.rows), 빠진행: Number(root.dataset.gaps),
-    번호범위: root.dataset.range,
+    수집한행: Number(root.dataset.rows), 전체행: Number(root.dataset.total),
+    빠진행: Number(root.dataset.gaps), 번호범위: root.dataset.range,
+    못읽음표시: document.querySelector('.cpv-note')?.textContent || '없음',
     스크롤바: (() => {
       const b = document.querySelector('.cpv-scrollbar');
       const th = document.querySelector('.cpv-thumb');

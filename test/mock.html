@@ -119,6 +119,7 @@ function makeRow(r) {
   n.dataset.testid = 'transcript-row';
   n.dataset.index = r.index; n.dataset.rsIndex = r.index;
   n.dataset.perfRow = r.type; n.dataset.perfRowStreaming = 'false';
+  n.dataset.perfRowFromTail = String(ROWS.length - 1 - r.index);   // 실제 화면에도 있는 값
   n.style.cssText = 'display:flow-root;position:relative';
   if (r.entry != null) {
     // 실제 화면과 같은 중첩: 행 > 글줄 칸(data-entry-key) > 본문(data-epitaxy-entry)
@@ -158,6 +159,9 @@ function renderWindow() {
     if (i < first || i > last) n.remove();
   });
   for (let i = first; i <= last; i++) {
+    // 13번 행은 바로 그 자리에 갔을 때만 붙는다.
+    // 훑기 한 번으로 놓치는 행이 생기는 경우를 만들어, 다시 줍는 과정을 시험한다.
+    if (i === 13 && Math.abs(feed.scrollTop - offsets[13]) > 400) continue;
     if (sizer.querySelector('[data-index="' + i + '"]')) continue;
     const node = makeRow(ROWS[i]);
     const after = [...sizer.querySelectorAll('[data-testid="transcript-row"]')].find(n => Number(n.dataset.index) > i);

@@ -256,6 +256,25 @@ html.cpv-on [role="feed"][data-autoscroll-container] {
   pointer-events: none;
 }
 
+/* 못 읽은 줄이 남았을 때만 나오는 표시 */
+.cpv-note {
+  position: fixed;
+  right: 18px;
+  bottom: 60px;
+  z-index: 2147483100;
+  padding: 6px 12px;
+  border: 1px solid var(--cpv-border, rgba(0, 0, 0, .14));
+  border-radius: 999px;
+  background: #fff;
+  color: #8b5a2b;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .08);
+}
+.cpv-note[disabled] { cursor: default; opacity: .75; }
+
 /* --- 켜고 끄는 버튼, 안내 --- */
 
 .cpv-toggle {
