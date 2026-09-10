@@ -160,6 +160,31 @@ CPV.source = (() => {
     return n > 200 ? Math.round(n) : 0;
   }
 
+  // 입력창(프롬프트 상자)이 차지하는 자리.
+  // 화면에 따라 입력창이 대화창 위에 떠 있어서, 덮개가 그 위를 덮으면 입력창이 사라진다.
+  function composerRect() {
+    const editables = [...document.querySelectorAll(
+      '[contenteditable="true"], textarea, [data-testid$="prompt-input"], [data-testid$="chat-input"]'
+    )].filter(e => {
+      const r = e.getBoundingClientRect();
+      return r.width > 120 && r.height > 8 && r.bottom > innerHeight * 0.4;
+    });
+    if (!editables.length) return null;
+    // 가장 아래 있는 것이 입력창이다.
+    const editor = editables.sort((a, b) => b.getBoundingClientRect().bottom - a.getBoundingClientRect().bottom)[0];
+    // 버튼까지 포함한 상자를 찾는다: 아래 끝이 거의 같으면서 너무 크지 않은 조상.
+    let box = editor;
+    let n = editor.parentElement;
+    const base = editor.getBoundingClientRect();
+    while (n && n !== document.body) {
+      const r = n.getBoundingClientRect();
+      if (r.bottom > base.bottom + 24 || r.height > innerHeight * 0.5) break;
+      box = n;
+      n = n.parentElement;
+    }
+    return box.getBoundingClientRect();
+  }
+
   function isStreaming() {
     const f = feed();
     if (!f) return false;
@@ -175,6 +200,6 @@ CPV.source = (() => {
   return {
     feed, sizer, rows, rowIndex, shotInfo,
     promptText, toolLabel, contentClone,
-    theme, columnWidth, isStreaming, conversationId, ROW
+    theme, columnWidth, composerRect, isStreaming, conversationId, ROW
   };
 })();

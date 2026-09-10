@@ -43,11 +43,19 @@ CPV.view = (() => {
 
   function measure() {
     const feed = S.feed();
-    const r = feed ? feed.getBoundingClientRect() : { width: innerWidth, height: innerHeight, left: 0, top: 0 };
+    let r = feed ? feed.getBoundingClientRect() : { width: innerWidth, height: innerHeight, left: 0, top: 0 };
+    // 입력창이 대화창 위에 떠 있는 화면이 있다. 그 위는 덮지 않는다.
+    const comp = S.composerRect();
+    if (comp && comp.top > r.top + 120 && comp.top < r.top + r.height) {
+      r = { left: r.left, top: r.top, width: r.width, height: comp.top - r.top - 8 };
+    }
     const availH = r.height - config.padY * 2 - config.bubbleH - config.actionsH;
     let cardH = Math.max(240, availH);
     // 폭은 원래 스크롤 화면의 글줄 폭에 맞춘다. 못 읽으면 8:10 비율로 돌아간다.
-    const col = config.matchColumnWidth ? S.columnWidth() : 0;
+    let col = config.matchColumnWidth ? S.columnWidth() : 0;
+    // 화면마다 글줄 폭이 다르다. 채팅·coworker 쪽 폭에 맞춰 상한을 둔다.
+    if (col && config.columnMax) col = Math.min(col, config.columnMax);
+    if (!col && config.matchColumnWidth) col = config.columnMax;
     // 카드 안쪽 글줄 폭이 원래 화면과 같아지도록 좌우 안여백과 테두리를 더한다.
     let cardW = col ? col + config.cardPadX * 2 + 2 : cardH * config.ratio;
     const maxW = r.width * 0.7;
@@ -306,19 +314,30 @@ CPV.view = (() => {
     paintBar();
   }
 
-  // 스크롤바 손잡이 위치와 크기
+  // 스크롤바 손잡이. 길이를 픽셀이 아니라 페이지 수로 나눈다.
+  // 손잡이 하나 길이가 한 페이지이고, 한 칸 옮기면 한 페이지 넘어간다.
   function paintBar() {
     if (!bar || !track) return;
-    const total = track.scrollWidth;
-    const view = track.clientWidth;
-    if (total <= view + 1) { bar.style.display = 'none'; return; }
+    const n = pages.length;
+    if (n <= 1) { bar.style.display = 'none'; return; }
     bar.style.display = '';
     const w = bar.clientWidth;
-    const size = Math.max(36, Math.round(w * view / total));
+    const size = Math.max(28, Math.round(w / n));
     const max = w - size;
-    const pos = Math.round(max * (track.scrollLeft / (total - view)));
+    const pos = Math.round(max * (focused / (n - 1)));
     thumb.style.width = size + 'px';
     thumb.style.left = Math.max(0, Math.min(max, pos)) + 'px';
+  }
+
+  // 스크롤바에서 x 위치를 페이지 번호로 바꾼다.
+  function pageFromBar(clientX) {
+    const n = pages.length;
+    if (n <= 1) return 0;
+    const r = bar.getBoundingClientRect();
+    const size = Math.max(28, r.width / n);
+    const max = r.width - size;
+    const x = Math.max(0, Math.min(max, clientX - r.left - size / 2));
+    return Math.round((x / max) * (n - 1));
   }
 
   // 중앙 카드만 또렷하게, 바깥으로 갈수록 흐리게.
@@ -398,6 +417,7 @@ CPV.view = (() => {
     get pages() { return pages; },
     get bar() { return bar; },
     get thumb() { return thumb; },
+    pageFromBar,
     get focused() { return focused; },
     get geom() { return geom; }
   };

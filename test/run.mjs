@@ -114,6 +114,27 @@ const state = await page.evaluate(() => {
     덮개배경: getComputedStyle(root).backgroundColor,
     덮개불투명: !/rgba\([^)]*,\s*0(\.\d+)?\)/.test(getComputedStyle(root).backgroundColor),
     앱대화보임: getComputedStyle(document.querySelector('[data-testid="epitaxy-virtual-transcript"]')).visibility,
+    입력창: (() => {
+      const c = document.querySelector('.composer');
+      const root = document.querySelector('.cpv-root');
+      if (!c || !root) return null;
+      const cr = c.getBoundingClientRect(), rr = root.getBoundingClientRect();
+      const hit = document.elementFromPoint(cr.left + cr.width / 2, cr.top + cr.height / 2);
+      return {
+        덮개아래끝: Math.round(rr.bottom), 입력창위끝: Math.round(cr.top),
+        덮개가안가림: rr.bottom <= cr.top + 1,
+        가운데에잡히는것: hit ? (hit.className || hit.tagName).toString().slice(0, 20) : null
+      };
+    })(),
+    스크롤바손잡이비율: (() => {
+      const b = document.querySelector('.cpv-scrollbar');
+      const th = document.querySelector('.cpv-thumb');
+      const n = Number(document.querySelector('.cpv-root').dataset.pages);
+      if (!b || !th) return null;
+      return { 페이지수: n,
+               손잡이폭: Math.round(th.getBoundingClientRect().width),
+               한페이지폭: Math.round(b.getBoundingClientRect().width / n) };
+    })(),
     화면중앙에잡히는것: (() => {
       const el = document.elementFromPoint(innerWidth / 2, innerHeight / 2);
       if (!el) return null;
@@ -124,7 +145,27 @@ const state = await page.evaluate(() => {
   };
 });
 
+// 휠 한 틱에 한 페이지
+const wheel = await page.evaluate(async () => {
+  const root = document.querySelector('.cpv-root');
+  const track = document.querySelector('.cpv-track');
+  const before = Number(root.dataset.focus);
+  track.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }));
+  await new Promise(r => setTimeout(r, 400));
+  const afterOne = Number(root.dataset.focus);
+  for (let i = 0; i < 3; i++) {
+    track.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }));
+    await new Promise(r => setTimeout(r, 300));
+  }
+  const afterFour = Number(root.dataset.focus);
+  return { 시작: before, 한틱뒤: afterOne, 네틱뒤: afterFour };
+});
+await page.evaluate(() => document.querySelector('.cpv-root').dispatchEvent(new CustomEvent('x')));
+
 // 첫 페이지에서 프롬프트 접기/펼치기
+await page.evaluate(() => { const V = document.querySelector('.cpv-root'); });
+await page.keyboard.press('Home');
+await page.waitForTimeout(500);
 await page.evaluate(() => document.querySelector('.cpv-bubble').click());
 await page.waitForTimeout(220);
 await page.screenshot({ path: path.join(shots, '03-prompt-open.png') });
@@ -244,6 +285,7 @@ console.log(JSON.stringify({
   모사화면: { 전체행: mock.rows, 전체높이: mock.total, 처음마운트된행: mounted },
   켠뒤: state,
   가운데정렬: centering,
+  휠: wheel,
   프롬프트겹침: bubble,
   도구펼침: { 이전페이지수: beforeTool, 이후페이지수: afterTool, 위치: toolPos },
   잘림검사: spill,

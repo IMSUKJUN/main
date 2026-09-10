@@ -8,7 +8,8 @@
         --text-100:60 2.6% 7.6%;--text-400:51 3.1% 43.7%}
   html,body{margin:0;height:100%;font:16px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif;
             background:hsl(var(--bg-100));color:hsl(var(--text-100))}
-  .app{height:100%;display:grid;grid-template-rows:52px 1fr 96px}
+  .app{height:100%;display:grid;grid-template-rows:52px 1fr}
+  .pane{position:relative}
   .head{display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #eceae6;font-size:14px}
   .pane{min-height:0;display:flex;overflow:clip;contain:strict}
   .feed{flex:1;height:100%;overflow-y:auto;overflow-x:hidden;contain:strict;overflow-anchor:none;
@@ -25,7 +26,11 @@
   .epitaxy-codeblock{position:relative;max-width:100%;width:fit-content;min-width:min(100%,318px);margin:1em 0}
   .epitaxy-diff{border-radius:8px;overflow:clip;background:#f4f3f1}
   .toolbtn{border:0;background:transparent;color:#8b8781;font:inherit;font-size:14px;cursor:pointer;padding:4px 0}
-  .composer{border-top:1px solid #eceae6;display:flex;align-items:center;justify-content:center;color:#8b8781}
+  /* 실제 채팅 화면처럼 입력창이 대화창 위에 떠 있다.
+     덮개가 이 위를 덮으면 입력창이 사라진다. */
+  .composer{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);
+            width:min(768px,80%);padding:14px 16px;border:1px solid #e5e3df;border-radius:16px;
+            background:#fff;color:#8b8781;box-shadow:0 4px 18px rgba(0,0,0,.08);z-index:5}
 </style></head>
 <body>
 <div class="app">
@@ -35,8 +40,10 @@
          data-testid="epitaxy-virtual-transcript" data-autoscroll-container>
       <div class="sizer" data-rocksteady-sizer data-testid="transcript-sizer"></div>
     </div>
+    <div class="composer">
+      <div contenteditable="true" data-testid="code-prompt-input">메시지를 입력하세요…</div>
+    </div>
   </div>
-  <div class="composer">메시지를 입력하세요…</div>
 </div>
 
 <script>

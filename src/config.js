@@ -8,6 +8,9 @@ CPV.config = {
   ratio: 0.8,
   // 카드 폭을 원래 스크롤 화면의 글줄 폭에 맞출지
   matchColumnWidth: true,
+  // 글줄 폭 상한. 채팅·coworker 화면 기준(768px)에 맞춘다.
+  // Claude Code 화면은 이보다 넓어서 그대로 두면 카드가 커진다.
+  columnMax: 768,
   // 카드 좌우 안여백 (overlay.css 의 .cpv-card padding 과 같아야 한다)
   cardPadX: 26,
   // 휠을 멈춘 뒤 가장 가까운 페이지에 맞추기까지 기다리는 시간(ms)
@@ -27,7 +30,11 @@ CPV.config = {
   // 클릭 유지로 연속 이동할 때의 간격(ms)
   holdInterval: 260,
   // 카드 이동 애니메이션(ms)
-  glide: 260
+  glide: 260,
+  // 휠 한 번에 한 페이지. 이 간격 안에 들어온 휠은 한 번으로 친다.
+  wheelCooldown: 220,
+  // 이만큼 이상 굴려야 한 페이지로 친다 (터치패드 잔떨림 거르기)
+  wheelThreshold: 8
 };
 
 CPV.sel = {

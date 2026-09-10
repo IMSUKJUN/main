@@ -6,7 +6,7 @@ CPV.nav = (() => {
   const V = CPV.view;
 
   let bound = null;
-  let settleTimer = null;
+  let wheelLock = 0;
   let drag = null;
   let holdTimer = null;
   let holdRepeat = null;
@@ -35,49 +35,37 @@ CPV.nav = (() => {
     window.removeEventListener('keydown', onKey);
     track.removeEventListener('scroll', onScroll);
     V.bar?.removeEventListener('pointerdown', onBarDown);
-    clearTimeout(settleTimer);
     stopHold();
     bound = null;
   }
 
-  // 세로 휠을 가로 스크롤로 바꾼다. 이어서 굴리는 만큼 계속 움직이고,
-  // 멈추면 가장 가까운 페이지에 맞춘다.
+  // 휠 한 번에 한 페이지.
+  // 연속 스크롤은 한 페이지 넘기는 데 한참 굴려야 해서 한 틱 단위로 바꿨다.
   function onWheel(e) {
     e.preventDefault();
     const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    V.track.style.scrollBehavior = 'auto';
-    V.track.scrollLeft += d;
-    V.focusFromScroll();
-    clearTimeout(settleTimer);
-    settleTimer = setTimeout(() => {
-      V.focusFromScroll();
-      V.focus(V.focused);
-    }, config.settle);
+    if (Math.abs(d) < config.wheelThreshold) return;
+    const now = performance.now();
+    if (now < wheelLock) return;
+    wheelLock = now + config.wheelCooldown;
+    V.focus(V.focused + (d > 0 ? 1 : -1));
   }
 
-  // 스크롤바를 끌거나 눌러서 이동
+  // 스크롤바를 끌거나 눌러서 이동.
+  // 손잡이 길이가 한 페이지라, 한 칸 옮기면 한 페이지 넘어간다.
   function onBarDown(e) {
     e.preventDefault();
     e.stopPropagation();
-    const bar = V.bar, thumb = V.thumb, track = V.track;
-    const barRect = bar.getBoundingClientRect();
-    const thumbRect = thumb.getBoundingClientRect();
-    const inside = e.clientX >= thumbRect.left && e.clientX <= thumbRect.right;
-    const grab = inside ? e.clientX - thumbRect.left : thumbRect.width / 2;
+    const bar = V.bar;
     bar.classList.add('dragging');
     const move = ev => {
-      const max = barRect.width - thumbRect.width;
-      const x = Math.max(0, Math.min(max, ev.clientX - barRect.left - grab));
-      track.style.scrollBehavior = 'auto';
-      track.scrollLeft = (x / max) * (track.scrollWidth - track.clientWidth);
-      V.focusFromScroll();
+      const page = V.pageFromBar(ev.clientX);
+      if (page !== V.focused) V.focus(page, false);
     };
     const up = () => {
       bar.classList.remove('dragging');
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
-      V.focusFromScroll();
-      V.focus(V.focused);
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
