@@ -13,6 +13,8 @@ CPV.view = (() => {
   let track = null;
   let veil = null;
   let layer = null;   // 말풍선·페이지번호·액션바
+  let bar = null;     // 직접 그리는 가로 스크롤바
+  let thumb = null;
   let geom = null;
   let pages = [];     // 화면에 보이는 카드 목록 (x 순서)
   let focused = 0;
@@ -25,14 +27,17 @@ CPV.view = (() => {
     track = el('div', 'cpv-track');
     veil = el('div', 'cpv-veil');
     layer = el('div', 'cpv-layer');
-    root.append(track, veil, layer);
+    bar = el('div', 'cpv-scrollbar');
+    thumb = el('div', 'cpv-thumb');
+    bar.append(thumb);
+    root.append(track, veil, layer, bar);
     container.appendChild(root);
     return root;
   }
 
   function destroy() {
     root?.remove();
-    root = track = veil = layer = null;
+    root = track = veil = layer = bar = thumb = null;
     pages = [];
   }
 
@@ -78,22 +83,26 @@ CPV.view = (() => {
   }
 
   // 행 목록을 샷 단위로 묶는다.
+  // 실제 화면에서는 사용자 메시지와 답변의 entry-index 가 서로 다르다(0, 1, 2, 3 …).
+  // 그래서 번호로 묶지 않고, 사용자 행이 나오면 새 샷이 시작하는 것으로 본다.
   function toShots(records) {
-    const shots = new Map();
+    const list = [];
     const chips = [];
+    let cur = null;
     for (const rec of records) {
       if (rec.type === S.ROW.MARKER) { chips.push(rec); continue; }
-      const key = rec.shot.entryIndex ?? `x${rec.index}`;
-      if (!shots.has(key)) {
-        shots.set(key, { key, entryIndex: rec.shot.entryIndex, order: rec.index, prompt: null, body: [], tool: [], chips: [] });
+      if (rec.type === S.ROW.HUMAN || !cur) {
+        cur = {
+          key: rec.shot.entryKey || 's' + rec.index,
+          order: rec.index,
+          prompt: null, body: [], tool: [], chips: []
+        };
+        list.push(cur);
       }
-      const shot = shots.get(key);
-      shot.order = Math.min(shot.order, rec.index);
-      if (rec.type === S.ROW.HUMAN) shot.prompt = rec;
-      else if (rec.type === S.ROW.TOOL) shot.tool.push(rec);
-      else shot.body.push(rec);
+      if (rec.type === S.ROW.HUMAN) cur.prompt = rec;
+      else if (rec.type === S.ROW.TOOL) cur.tool.push(rec);
+      else cur.body.push(rec);
     }
-    const list = [...shots.values()].sort((a, b) => a.order - b.order);
     // marker 는 어느 샷에도 안 붙는다. 바로 뒤에 오는 샷 앞에 칩으로 세운다.
     for (const chip of chips) {
       const next = list.find(s => s.order > chip.index);
@@ -144,13 +153,19 @@ CPV.view = (() => {
 
   function makeStrip(shot, kind) {
     const rows = kind === 'body' ? shot.body : shot.tool;
-    if (!rows.length) return null;
+    // 답변이 아직 없어도 프롬프트는 보여야 하므로 빈 카드를 만든다.
+    if (!rows.length && !(kind === 'body' && shot.prompt)) return null;
     const strip = el('div', 'cpv-strip');
     strip.dataset.kind = kind;
     strip.dataset.shot = String(shot.key);
     const card = el('div', 'cpv-card');
 
     if (kind === 'body' && shot.tool.length) card.append(makeToolLine(shot));
+    if (kind === 'body' && !rows.length) {
+      const wait = el('div', 'cpv-waiting');
+      wait.textContent = '응답을 기다리는 중…';
+      card.append(wait);
+    }
     for (const rec of rows) {
       const holder = el('div', 'cpv-row');
       if (rec.content) holder.append(rec.content.cloneNode(true));
@@ -232,6 +247,10 @@ CPV.view = (() => {
         page.bubbleEl = bubble;
       }
     }
+    const counter = el('div', 'cpv-counter');
+    layer.append(counter);
+    layer.counter = counter;
+
     const actions = el('div', 'cpv-actions');
     actions.innerHTML = '<span>복사</span><span>읽어주기</span><span>좋아요</span><span>싫어요</span><span>다시</span>';
     layer.append(actions);
@@ -273,12 +292,33 @@ CPV.view = (() => {
       if (page.bubbleEl) page.bubbleEl.style.left = (page.left - dx) + 'px';
     }
     const cur = pages[focused];
+    if (layer.counter) {
+      layer.counter.textContent = pages.length
+        ? `${focused + 1} / ${pages.length}` + (cur?.label ? ` · ${cur.label}` : '')
+        : '';
+    }
     if (cur && layer.actions) {
       layer.actions.style.left = (cur.left - dx) + 'px';
       layer.actions.style.top = (cur.top + cur.height + 8) + 'px';
       layer.actions.style.width = cur.width + 'px';
     }
     paintVeil();
+    paintBar();
+  }
+
+  // 스크롤바 손잡이 위치와 크기
+  function paintBar() {
+    if (!bar || !track) return;
+    const total = track.scrollWidth;
+    const view = track.clientWidth;
+    if (total <= view + 1) { bar.style.display = 'none'; return; }
+    bar.style.display = '';
+    const w = bar.clientWidth;
+    const size = Math.max(36, Math.round(w * view / total));
+    const max = w - size;
+    const pos = Math.round(max * (track.scrollLeft / (total - view)));
+    thumb.style.width = size + 'px';
+    thumb.style.left = Math.max(0, Math.min(max, pos)) + 'px';
   }
 
   // 중앙 카드만 또렷하게, 바깥으로 갈수록 흐리게.
@@ -356,6 +396,8 @@ CPV.view = (() => {
     get root() { return root; },
     get track() { return track; },
     get pages() { return pages; },
+    get bar() { return bar; },
+    get thumb() { return thumb; },
     get focused() { return focused; },
     get geom() { return geom; }
   };

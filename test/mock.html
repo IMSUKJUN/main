@@ -81,16 +81,18 @@ const sizer = document.querySelector('.sizer');
 const feed = document.querySelector('.feed');
 const ROWS = [];
 let idx = 0;
+let entry = 0;   // 실제 화면처럼 사용자 메시지와 답변이 서로 다른 번호를 갖는다
 SHOTS.forEach((shot, s) => {
-  ROWS.push({ index: idx++, type: 'human', entry: s, item: null,
+  ROWS.push({ index: idx++, type: 'human', entry: entry++, item: null,
               html: '<div class="user">' + shot.q + '</div>' });
   if (shot.marker) {
     ROWS.push({ index: idx++, type: 'marker', entry: null, item: null,
                 html: '<div class="col" style="text-align:center;color:#8b8781;font-size:13px">' + shot.marker + '</div>' });
   }
-  ROWS.push({ index: idx++, type: 'assistant_tool', entry: s, item: 0,
+  const answer = entry++;
+  ROWS.push({ index: idx++, type: 'assistant_tool', entry: answer, item: 0,
               html: '<button class="toolbtn" aria-expanded="false">' + shot.tool + '</button>' });
-  ROWS.push({ index: idx++, type: 'assistant_text', entry: s, item: 1,
+  ROWS.push({ index: idx++, type: 'assistant_text', entry: answer, item: 1,
               html: '<div class="prose">' + proseHTML(shot.paras, s * 7) + '</div>' });
 });
 

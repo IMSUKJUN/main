@@ -22,6 +22,7 @@ CPV.nav = (() => {
     window.addEventListener('pointerup', onUp);
     window.addEventListener('keydown', onKey);
     track.addEventListener('scroll', onScroll, { passive: true });
+    V.bar?.addEventListener('pointerdown', onBarDown);
   }
 
   function detach() {
@@ -33,6 +34,7 @@ CPV.nav = (() => {
     window.removeEventListener('pointerup', onUp);
     window.removeEventListener('keydown', onKey);
     track.removeEventListener('scroll', onScroll);
+    V.bar?.removeEventListener('pointerdown', onBarDown);
     clearTimeout(settleTimer);
     stopHold();
     bound = null;
@@ -51,6 +53,35 @@ CPV.nav = (() => {
       V.focusFromScroll();
       V.focus(V.focused);
     }, config.settle);
+  }
+
+  // 스크롤바를 끌거나 눌러서 이동
+  function onBarDown(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const bar = V.bar, thumb = V.thumb, track = V.track;
+    const barRect = bar.getBoundingClientRect();
+    const thumbRect = thumb.getBoundingClientRect();
+    const inside = e.clientX >= thumbRect.left && e.clientX <= thumbRect.right;
+    const grab = inside ? e.clientX - thumbRect.left : thumbRect.width / 2;
+    bar.classList.add('dragging');
+    const move = ev => {
+      const max = barRect.width - thumbRect.width;
+      const x = Math.max(0, Math.min(max, ev.clientX - barRect.left - grab));
+      track.style.scrollBehavior = 'auto';
+      track.scrollLeft = (x / max) * (track.scrollWidth - track.clientWidth);
+      V.focusFromScroll();
+    };
+    const up = () => {
+      bar.classList.remove('dragging');
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      V.focusFromScroll();
+      V.focus(V.focused);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    move(e);
   }
 
   function onDown(e) {

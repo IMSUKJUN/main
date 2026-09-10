@@ -59,7 +59,7 @@ const mounted = await page.evaluate(() => document.querySelectorAll('[data-testi
 await page.screenshot({ path: path.join(shots, '01-before.png') });
 
 await page.click('.cpv-toggle');
-await page.waitForFunction(() => document.querySelectorAll('.cpv-strip').length > 0, null, { timeout: 30000 });
+await page.waitForFunction(() => document.querySelectorAll('.cpv-strip').length > 0, null, { timeout: 60000 });
 await page.waitForTimeout(600);
 await page.screenshot({ path: path.join(shots, '02-page-view.png') });
 
@@ -79,6 +79,21 @@ const state = await page.evaluate(() => {
     페이지수: Number(root.dataset.pages),
     strips,
     말풍선: document.querySelectorAll('.cpv-bubble').length,
+    말풍선있는샷: new Set([...document.querySelectorAll('.cpv-bubble')].map(b => b.dataset.shot)).size,
+    본문카드묶음: document.querySelectorAll('.cpv-strip[data-kind="body"]').length,
+    카운터: document.querySelector('.cpv-counter')?.textContent || null,
+    수집한행: Number(root.dataset.rows), 빠진행: Number(root.dataset.gaps),
+    번호범위: root.dataset.range,
+    스크롤바: (() => {
+      const b = document.querySelector('.cpv-scrollbar');
+      const th = document.querySelector('.cpv-thumb');
+      if (!b || !th) return null;
+      const br = b.getBoundingClientRect(), tr = th.getBoundingClientRect();
+      return { 보임: getComputedStyle(b).display !== 'none',
+               폭: Math.round(br.width), 높이: Math.round(br.height),
+               손잡이폭: Math.round(tr.width),
+               색: getComputedStyle(th).backgroundColor };
+    })(),
     페이지번호: document.querySelectorAll('.cpv-pageno').length,
     칩: document.querySelectorAll('.cpv-chip').length,
     도구줄: document.querySelectorAll('.cpv-toolline').length,
@@ -154,8 +169,9 @@ await page.waitForTimeout(500);
 const afterTool = await page.evaluate(() => Number(document.querySelector('.cpv-root').dataset.pages));
 const toolPos = await page.evaluate(() => {
   const strips = [...document.querySelectorAll('.cpv-strip')];
-  const body = strips.find(s => s.dataset.kind === 'body' && s.dataset.shot === '0');
-  const tool = strips.find(s => s.dataset.kind === 'tool' && s.dataset.shot === '0');
+  const key = strips.find(s => s.dataset.kind === 'body')?.dataset.shot;
+  const body = strips.find(s => s.dataset.kind === 'body' && s.dataset.shot === key);
+  const tool = strips.find(s => s.dataset.kind === 'tool' && s.dataset.shot === key);
   if (!body || !tool) return null;
   const order = strips.indexOf(tool) - strips.indexOf(body);
   return { 본문다음칸: order, 도구페이지수: Number(tool.dataset.pages),

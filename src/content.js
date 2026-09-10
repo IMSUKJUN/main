@@ -48,7 +48,17 @@ window.CPV = window.CPV || {};
     });
     progress.remove();
 
+    const cov = H.coverage();
+    // 몇 행을 읽었는지 잠깐 알려 준다. 빠진 게 있으면 같이 보여 준다.
+    flash(cov.빠진개수
+      ? `${cov.수집한행}개 읽음 · 못 읽은 줄 ${cov.빠진개수}개`
+      : `${cov.수집한행}개 읽음`);
     V.render(records);
+    if (V.root) {
+      V.root.dataset.rows = String(cov.수집한행);
+      V.root.dataset.gaps = String(cov.빠진개수);
+      V.root.dataset.range = (cov.번호범위 || []).join('-');
+    }
     N.attach(V.root);
     V.root.addEventListener('cpv:rerender', () => V.render(H.records()));
     watch();

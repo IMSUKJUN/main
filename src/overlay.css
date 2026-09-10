@@ -47,21 +47,38 @@ html.cpv-on [role="feed"][data-autoscroll-container] {
   padding-top: var(--cpv-card-top);
   overflow-x: auto;
   overflow-y: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: var(--cpv-border) transparent;
+  scrollbar-width: none;
+  padding-bottom: 24px;
   cursor: grab;
   overscroll-behavior: contain;
 }
-.cpv-track::-webkit-scrollbar { height: 10px; }
-.cpv-track::-webkit-scrollbar-track { background: transparent; }
-.cpv-track::-webkit-scrollbar-thumb {
-  border: 3px solid transparent;
-  border-radius: 999px;
-  background: var(--cpv-border);
-  background-clip: content-box;
-}
-.cpv-track::-webkit-scrollbar-thumb:hover { background: var(--cpv-muted); background-clip: content-box; }
+.cpv-track::-webkit-scrollbar { display: none; }
 .cpv-track:active { cursor: grabbing; }
+
+/* 직접 그리는 가로 스크롤바. OS 설정에 상관없이 항상 보인다. */
+.cpv-scrollbar {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cpv-text) 8%, transparent);
+  cursor: pointer;
+}
+.cpv-thumb {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  min-width: 36px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cpv-text) 34%, transparent);
+  transition: background 120ms ease-out;
+}
+.cpv-scrollbar:hover .cpv-thumb,
+.cpv-scrollbar.dragging .cpv-thumb {
+  background: color-mix(in srgb, var(--cpv-text) 58%, transparent);
+}
 
 .cpv-lead, .cpv-tail { height: 1px; }
 
@@ -215,6 +232,28 @@ html.cpv-on [role="feed"][data-autoscroll-container] {
   padding-left: 4px;
   color: var(--cpv-muted);
   font-size: 12px;
+}
+
+/* 답변이 아직 없는 샷 */
+.cpv-waiting {
+  color: var(--cpv-muted);
+  font-size: 14px;
+}
+
+/* 지금 몇 번째 페이지인지 */
+.cpv-counter {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  border: 1px solid var(--cpv-border);
+  border-radius: 999px;
+  background: var(--cpv-surface);
+  color: var(--cpv-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
 }
 
 /* --- 켜고 끄는 버튼, 안내 --- */

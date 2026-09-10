@@ -21,9 +21,9 @@ CPV.config = {
   // 트랙 위아래 여백
   padY: 16,
   // 수집할 때 한 번에 내리는 양 (화면 높이 대비)
-  harvestStep: 0.6,
+  harvestStep: 0.5,
   // 수집 각 단계에서 기다리는 시간(ms)
-  harvestWait: 120,
+  harvestWait: 150,
   // 클릭 유지로 연속 이동할 때의 간격(ms)
   holdInterval: 260,
   // 카드 이동 애니메이션(ms)

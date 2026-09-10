@@ -43,27 +43,73 @@ CPV.harvest = (() => {
   }
 
   // 전체 훑기. 스크롤 위치는 끝나면 되돌린다.
+  //
+  // 한 번에 끝나지 않는다. 행 높이를 재는 동안 전체 높이가 계속 바뀌고,
+  // 행 하나가 화면 두 배가 넘는 경우도 있다. 그래서 바닥에 닿을 때까지 돌고,
+  // 빠진 번호가 남으면 더 촘촘한 간격으로 한 번 더 훑는다.
   async function all(onProgress) {
     const feed = S.feed();
     if (!feed) return records();
     const start = feed.scrollTop;
-    const step = Math.max(200, feed.clientHeight * config.harvestStep);
-    const total = Math.max(1, feed.scrollHeight - feed.clientHeight);
 
-    captureMounted();
-    for (let top = 0; top <= total; top += step) {
-      feed.scrollTop = top;
-      await wait(config.harvestWait);
-      captureMounted();
-      onProgress?.(Math.min(1, top / total));
-    }
-    feed.scrollTop = total;
-    await wait(config.harvestWait);
-    captureMounted();
+    await sweep(feed, config.harvestStep, onProgress);
+    let gaps = missing();
+    if (gaps.length) await sweep(feed, config.harvestStep / 2, onProgress);
+    gaps = missing();
 
     feed.scrollTop = start;
     onProgress?.(1);
+    lastGaps = gaps;
     return records();
+  }
+
+  async function sweep(feed, stepRatio, onProgress) {
+    const step = Math.max(160, feed.clientHeight * stepRatio);
+    feed.scrollTop = 0;
+    await wait(config.harvestWait);
+    captureMounted();
+
+    let top = 0;
+    for (let guard = 0; guard < 2000; guard++) {
+      const max = Math.max(0, feed.scrollHeight - feed.clientHeight);
+      if (top >= max) break;
+      top = Math.min(max, top + step);
+      feed.scrollTop = top;
+      await wait(config.harvestWait);
+      captureMounted();
+      onProgress?.(max ? Math.min(1, top / max) : 1);
+      // 앱이 스크롤 위치를 되돌리면 그 위치에서 이어간다.
+      const actual = feed.scrollTop;
+      if (Math.abs(actual - top) > 2) {
+        if (actual <= top - step) break;   // 더 못 내려가면 멈춘다
+        top = actual;
+      }
+    }
+    feed.scrollTop = Math.max(0, feed.scrollHeight - feed.clientHeight);
+    await wait(config.harvestWait);
+    captureMounted();
+  }
+
+  // 수집한 번호 사이에 빠진 것
+  function missing() {
+    const keys = [...store.keys()].sort((a, b) => a - b);
+    if (!keys.length) return [];
+    const out = [];
+    for (let i = keys[0]; i <= keys[keys.length - 1]; i++) {
+      if (!store.has(i)) out.push(i);
+    }
+    return out;
+  }
+
+  let lastGaps = [];
+  function coverage() {
+    const keys = [...store.keys()].sort((a, b) => a - b);
+    return {
+      수집한행: keys.length,
+      번호범위: keys.length ? [keys[0], keys[keys.length - 1]] : null,
+      빠진번호: lastGaps.slice(0, 20),
+      빠진개수: lastGaps.length
+    };
   }
 
   function records() {
@@ -78,5 +124,5 @@ CPV.harvest = (() => {
     return new Promise(r => setTimeout(r, ms));
   }
 
-  return { all, captureMounted, records, clear };
+  return { all, captureMounted, records, clear, coverage, missing };
 })();
