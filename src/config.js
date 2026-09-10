@@ -4,8 +4,14 @@
 window.CPV = window.CPV || {};
 
 CPV.config = {
-  // 카드 비율 가로:세로 = 8:10
+  // 카드 비율 가로:세로 = 8:10 (글줄 폭을 못 읽을 때 쓰는 값)
   ratio: 0.8,
+  // 카드 폭을 원래 스크롤 화면의 글줄 폭에 맞출지
+  matchColumnWidth: true,
+  // 카드 좌우 안여백 (overlay.css 의 .cpv-card padding 과 같아야 한다)
+  cardPadX: 26,
+  // 휠을 멈춘 뒤 가장 가까운 페이지에 맞추기까지 기다리는 시간(ms)
+  settle: 160,
   // 카드 사이 간격 (카드 폭 대비)
   gapRatio: 0.176,
   // 카드 위 프롬프트 말풍선 자리

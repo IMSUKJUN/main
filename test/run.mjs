@@ -120,7 +120,32 @@ await page.waitForTimeout(200);
 
 // 오른쪽으로 세 칸 이동
 for (let i = 0; i < 3; i++) { await page.keyboard.press('ArrowRight'); await page.waitForTimeout(320); }
+// 부드러운 이동이 끝날 때까지 기다린 뒤에 잰다
+await page.waitForFunction(() => {
+  const t = document.querySelector('.cpv-track');
+  const now = Math.round(t.scrollLeft);
+  const same = window.__lastScroll === now;
+  window.__lastScroll = now;
+  return same;
+}, null, { timeout: 4000 });
 await page.screenshot({ path: path.join(shots, '04-moved.png') });
+const centering = await page.evaluate(() => {
+  const root = document.querySelector('.cpv-root');
+  const track = document.querySelector('.cpv-track');
+  const i = Number(root.dataset.focus);
+  const cards = [...document.querySelectorAll('.cpv-strip')]
+    .flatMap(s => [...(s.querySelector('.cpv-card') || s).getClientRects()])
+    .sort((a, b) => a.left - b.left);
+  const cur = cards[i];
+  const rr = root.getBoundingClientRect();
+  return {
+    초점번호: i, 페이지수: Number(root.dataset.pages),
+    카드왼쪽: Math.round(cur.left - rr.left), 카드폭: Math.round(cur.width),
+    덮개폭: Math.round(rr.width),
+    중앙에서벗어난px: Math.round((cur.left - rr.left) - (rr.width - cur.width) / 2),
+    스크롤: Math.round(track.scrollLeft), 최대스크롤: Math.round(track.scrollWidth - track.clientWidth)
+  };
+});
 
 // 도구 내역 펼치기 (본문 오른쪽에 붙는지)
 const beforeTool = await page.evaluate(() => Number(document.querySelector('.cpv-root').dataset.pages));
@@ -191,6 +216,7 @@ await page.screenshot({ path: path.join(shots, '06-after-off.png') });
 console.log(JSON.stringify({
   모사화면: { 전체행: mock.rows, 전체높이: mock.total, 처음마운트된행: mounted },
   켠뒤: state,
+  가운데정렬: centering,
   프롬프트겹침: bubble,
   도구펼침: { 이전페이지수: beforeTool, 이후페이지수: afterTool, 위치: toolPos },
   잘림검사: spill,

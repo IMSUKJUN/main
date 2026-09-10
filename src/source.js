@@ -145,6 +145,21 @@ CPV.source = (() => {
     };
   }
 
+  // 원래 스크롤 화면에서 글이 흐르는 칸의 폭.
+  // 카드 폭을 여기에 맞추면 줄바꿈이 스크롤 화면과 같아진다.
+  function columnWidth() {
+    // 본문이 실제로 흐르는 칸을 찾는다. 좌우 여백(gutter)은 빼고 글이 차지하는 폭이다.
+    for (const row of rows()) {
+      if (row.dataset.perfRow === 'marker') continue;
+      const inner = row.querySelector(sel.entry) || row.querySelector(sel.entryKey);
+      const w = inner ? Math.round(inner.getBoundingClientRect().width) : 0;
+      if (w > 200) return w;
+    }
+    const probe = document.querySelector(sel.row) || document.body;
+    const n = parseFloat(getComputedStyle(probe).getPropertyValue('--chat-column-measure'));
+    return n > 200 ? Math.round(n) : 0;
+  }
+
   function isStreaming() {
     const f = feed();
     if (!f) return false;
@@ -160,6 +175,6 @@ CPV.source = (() => {
   return {
     feed, sizer, rows, rowIndex, shotInfo,
     promptText, toolLabel, contentClone,
-    theme, isStreaming, conversationId, ROW
+    theme, columnWidth, isStreaming, conversationId, ROW
   };
 })();

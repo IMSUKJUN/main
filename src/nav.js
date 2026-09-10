@@ -6,8 +6,7 @@ CPV.nav = (() => {
   const V = CPV.view;
 
   let bound = null;
-  let wheelAcc = 0;
-  let wheelLock = false;
+  let settleTimer = null;
   let drag = null;
   let holdTimer = null;
   let holdRepeat = null;
@@ -34,21 +33,24 @@ CPV.nav = (() => {
     window.removeEventListener('pointerup', onUp);
     window.removeEventListener('keydown', onKey);
     track.removeEventListener('scroll', onScroll);
+    clearTimeout(settleTimer);
     stopHold();
     bound = null;
   }
 
-  // 세로 휠을 가로 이동으로 바꾼다. 한 번에 한 페이지씩.
+  // 세로 휠을 가로 스크롤로 바꾼다. 이어서 굴리는 만큼 계속 움직이고,
+  // 멈추면 가장 가까운 페이지에 맞춘다.
   function onWheel(e) {
     e.preventDefault();
-    if (wheelLock) return;
-    wheelAcc += Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    if (Math.abs(wheelAcc) < 90) return;
-    const dir = wheelAcc > 0 ? 1 : -1;
-    wheelAcc = 0;
-    wheelLock = true;
-    setTimeout(() => { wheelLock = false; }, config.glide);
-    V.focus(V.focused + dir);
+    const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    V.track.style.scrollBehavior = 'auto';
+    V.track.scrollLeft += d;
+    V.focusFromScroll();
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(() => {
+      V.focusFromScroll();
+      V.focus(V.focused);
+    }, config.settle);
   }
 
   function onDown(e) {

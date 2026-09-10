@@ -40,7 +40,9 @@
 <script>
 // ---- 대화 데이터 만들기 -------------------------------------------------
 const SHOTS = [
-  { q: '스크롤 구조를 페이지 구조로 바꾸는 확장 프로그램을 만들고 싶다. 가능한지부터 확인해줘.',
+  { q: '스크롤 구조를 페이지 구조로 바꾸는 확장 프로그램을 만들고 싶다. 가능한지부터 확인해줘. '
+     + '단순 텍스트만이 아니라 표, 코드블록, 접힌 사고 과정까지 섞여 있는 화면이고, '
+     + '페이지 경계에서 내용이 잘려 사라지는 일이 없어야 한다. 한 페이지는 화면 안에 온전히 들어가야 한다.',
     tool: '실행됨 · 명령 12개', paras: 26, marker: '세션 초기화됨' },
   { q: '단순 텍스트만이 아니라 표와 코드블록이 섞여 있는데도 되나?',
     tool: '실행됨 · 명령 15개 (2개 실패)', paras: 14, marker: '세션 재개됨' },
@@ -81,15 +83,15 @@ const ROWS = [];
 let idx = 0;
 SHOTS.forEach((shot, s) => {
   ROWS.push({ index: idx++, type: 'human', entry: s, item: null,
-              html: '<div class="col"><div class="user">' + shot.q + '</div></div>' });
+              html: '<div class="user">' + shot.q + '</div>' });
   if (shot.marker) {
     ROWS.push({ index: idx++, type: 'marker', entry: null, item: null,
                 html: '<div class="col" style="text-align:center;color:#8b8781;font-size:13px">' + shot.marker + '</div>' });
   }
   ROWS.push({ index: idx++, type: 'assistant_tool', entry: s, item: 0,
-              html: '<div class="col"><button class="toolbtn" aria-expanded="false">' + shot.tool + '</button></div>' });
+              html: '<button class="toolbtn" aria-expanded="false">' + shot.tool + '</button>' });
   ROWS.push({ index: idx++, type: 'assistant_text', entry: s, item: 1,
-              html: '<div class="col"><div class="prose">' + proseHTML(shot.paras, s * 7) + '</div></div>' });
+              html: '<div class="prose">' + proseHTML(shot.paras, s * 7) + '</div>' });
 });
 
 // ---- 가상 스크롤 (실제 화면과 같은 방식으로 화면 밖 행을 뗀다) -----------
@@ -111,13 +113,17 @@ function makeRow(r) {
   n.dataset.perfRow = r.type; n.dataset.perfRowStreaming = 'false';
   n.style.cssText = 'display:flow-root;position:relative';
   if (r.entry != null) {
+    // 실제 화면과 같은 중첩: 행 > 글줄 칸(data-entry-key) > 본문(data-epitaxy-entry)
+    const col = document.createElement('div');
+    col.className = 'col';
+    col.dataset.entryKey = 'key-' + r.entry;
     const wrap = document.createElement('div');
     wrap.dataset.epitaxyEntry = 'key-' + r.entry;
     wrap.dataset.epitaxyEntryIndex = String(r.entry);
     if (r.item != null) wrap.dataset.epitaxyItemIndex = String(r.item);
-    wrap.dataset.entryKey = 'key-' + r.entry;
     wrap.innerHTML = r.html;
-    n.appendChild(wrap);
+    col.appendChild(wrap);
+    n.appendChild(col);
   } else {
     n.innerHTML = r.html;
   }

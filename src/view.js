@@ -41,9 +41,13 @@ CPV.view = (() => {
     const r = feed ? feed.getBoundingClientRect() : { width: innerWidth, height: innerHeight, left: 0, top: 0 };
     const availH = r.height - config.padY * 2 - config.bubbleH - config.actionsH;
     let cardH = Math.max(240, availH);
-    let cardW = cardH * config.ratio;
-    const maxW = r.width * 0.62;
-    if (cardW > maxW) { cardW = maxW; cardH = cardW / config.ratio; }
+    // 폭은 원래 스크롤 화면의 글줄 폭에 맞춘다. 못 읽으면 8:10 비율로 돌아간다.
+    const col = config.matchColumnWidth ? S.columnWidth() : 0;
+    // 카드 안쪽 글줄 폭이 원래 화면과 같아지도록 좌우 안여백과 테두리를 더한다.
+    let cardW = col ? col + config.cardPadX * 2 + 2 : cardH * config.ratio;
+    const maxW = r.width * 0.7;
+    if (cardW > maxW) cardW = maxW;
+    cardH = Math.min(cardH, Math.max(240, cardW / config.ratio));
     geom = {
       rect: r,
       cardW: Math.round(cardW),
@@ -221,7 +225,8 @@ CPV.view = (() => {
       layer.append(num);
       page.numEl = num;
 
-      if (page.first && page.kind === 'body' && page.shot?.prompt) {
+      // 프롬프트는 그 샷의 모든 페이지 위에 붙는다. 다음 샷으로 넘어가야 바뀐다.
+      if (page.shot?.prompt) {
         const bubble = makeBubble(page.shot, page);
         layer.append(bubble);
         page.bubbleEl = bubble;

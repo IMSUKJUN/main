@@ -47,11 +47,20 @@ html.cpv-on [role="feed"][data-autoscroll-container] {
   padding-top: var(--cpv-card-top);
   overflow-x: auto;
   overflow-y: hidden;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cpv-border) transparent;
   cursor: grab;
   overscroll-behavior: contain;
 }
-.cpv-track::-webkit-scrollbar { display: none; }
+.cpv-track::-webkit-scrollbar { height: 10px; }
+.cpv-track::-webkit-scrollbar-track { background: transparent; }
+.cpv-track::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: var(--cpv-border);
+  background-clip: content-box;
+}
+.cpv-track::-webkit-scrollbar-thumb:hover { background: var(--cpv-muted); background-clip: content-box; }
 .cpv-track:active { cursor: grabbing; }
 
 .cpv-lead, .cpv-tail { height: 1px; }
