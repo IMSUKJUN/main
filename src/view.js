@@ -64,6 +64,8 @@ CPV.view = (() => {
     root.style.setProperty('--cpv-text', t.text);
     root.style.setProperty('--cpv-muted', t.muted);
     root.style.setProperty('--cpv-veil-color', t.bg);
+    root.style.setProperty('--cpv-shadow-near', t.shadowNear);
+    root.style.setProperty('--cpv-shadow-far', t.shadowFar);
     Object.assign(root.style, {
       left: r.left + 'px', top: r.top + 'px',
       width: r.width + 'px', height: r.height + 'px'

@@ -20,6 +20,8 @@
   --cpv-border: #e5e3df;
   --cpv-text: #1f1e1c;
   --cpv-muted: #8b8781;
+  --cpv-shadow-near: rgba(31, 30, 28, .05);
+  --cpv-shadow-far: rgba(31, 30, 28, .07);
   --cpv-veil-color: var(--cpv-bg);
   background: var(--cpv-bg);
   color: var(--cpv-text);
@@ -71,6 +73,9 @@ html.cpv-on [role="feed"][data-autoscroll-container] {
   border: 1px solid var(--cpv-border);
   border-radius: 14px;
   background: var(--cpv-surface);
+  /* 페이지끼리 구분되도록 얇은 선 + 연한 그림자.
+     box-decoration-break: clone 덕에 조각(페이지)마다 온전히 그려진다. */
+  box-shadow: 0 1px 2px var(--cpv-shadow-near), 0 10px 28px var(--cpv-shadow-far);
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
 }
@@ -78,6 +83,7 @@ html.cpv-on [role="feed"][data-autoscroll-container] {
 .cpv-strip[data-kind="tool"] .cpv-card {
   background: color-mix(in srgb, var(--cpv-surface) 88%, var(--cpv-bg));
   border-style: dashed;
+  box-shadow: 0 1px 2px var(--cpv-shadow-near);
 }
 
 /* 페이지 경계에서 잘리면 안 되는 것들 */

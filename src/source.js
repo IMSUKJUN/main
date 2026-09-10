@@ -132,12 +132,16 @@ CPV.source = (() => {
     const text = toRGB(getComputedStyle(f).color) || { r: 31, g: 30, b: 28, a: 1 };
     const dark = lum(bg) < 0.5;
     const white = { r: 255, g: 255, b: 255, a: 1 };
+    // 그림자는 어두운 화면에서 더 진해야 보인다.
+    const shade = (a) => dark ? `rgba(0, 0, 0, ${a * 4})` : `rgba(${text.r}, ${text.g}, ${text.b}, ${a})`;
     return {
       bg: rgbText(bg),
       surface: dark ? mix(bg, white, 0.07) : rgbText(white),
-      border: mix(bg, text, 0.14),
+      border: mix(bg, text, dark ? 0.2 : 0.14),
       text: rgbText(text),
-      muted: mix(bg, text, 0.5)
+      muted: mix(bg, text, 0.5),
+      shadowNear: shade(0.05),
+      shadowFar: shade(0.07)
     };
   }
 

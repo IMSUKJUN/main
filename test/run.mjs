@@ -84,6 +84,7 @@ const state = await page.evaluate(() => {
     도구줄: document.querySelectorAll('.cpv-toolline').length,
     코드복원: document.querySelectorAll('.cpv-code').length,
     빈코드블록: document.querySelectorAll('.cpv-card diffs-container').length,
+    카드그림자: getComputedStyle(document.querySelector('.cpv-card')).boxShadow.slice(0, 90),
     덮개배경: getComputedStyle(root).backgroundColor,
     덮개불투명: !/rgba\([^)]*,\s*0(\.\d+)?\)/.test(getComputedStyle(root).backgroundColor),
     앱대화보임: getComputedStyle(document.querySelector('[data-testid="epitaxy-virtual-transcript"]')).visibility,
