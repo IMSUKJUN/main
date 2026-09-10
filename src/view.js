@@ -74,6 +74,8 @@ CPV.view = (() => {
     root.style.setProperty('--cpv-gap', geom.gap + 'px');
     root.style.setProperty('--cpv-card-top', geom.cardTop + 'px');
     root.style.setProperty('--cpv-bubble-h', config.bubbleH + 'px');
+    // 스크롤바 길이를 카드(= 입력창) 폭에 맞춘다.
+    root.style.setProperty('--cpv-bar-w', geom.cardW + 'px');
     const t = S.theme();
     root.style.setProperty('--cpv-bg', t.bg);
     root.style.setProperty('--cpv-surface', t.surface);
@@ -247,14 +249,18 @@ CPV.view = (() => {
       place(num, page.left + page.width, page.top + page.height, 'br');
       layer.append(num);
       page.numEl = num;
-
-      // 프롬프트는 그 샷의 모든 페이지 위에 붙는다. 다음 샷으로 넘어가야 바뀐다.
-      if (page.shot?.prompt) {
-        const bubble = makeBubble(page.shot, page);
-        layer.append(bubble);
-        page.bubbleEl = bubble;
-      }
     }
+
+    // 프롬프트는 가운데 한 개만 떠 있다. 페이지를 넘겨도 그 자리에 있고,
+    // 다른 샷으로 넘어갈 때만 내용이 바뀐다.
+    const bubble = el('div', 'cpv-bubble');
+    bubble.addEventListener('click', e => {
+      e.stopPropagation();
+      const key = bubble.dataset.shot;
+      if (key) togglePrompt(key);
+    });
+    layer.append(bubble);
+    layer.bubble = bubble;
     const counter = el('div', 'cpv-counter');
     layer.append(counter);
     layer.counter = counter;
@@ -263,22 +269,6 @@ CPV.view = (() => {
     actions.innerHTML = '<span>복사</span><span>읽어주기</span><span>좋아요</span><span>싫어요</span><span>다시</span>';
     layer.append(actions);
     layer.actions = actions;
-  }
-
-  function makeBubble(shot, page) {
-    const b = el('div', 'cpv-bubble');
-    const open = expandedPrompts.has(shot.key);
-    b.classList.toggle('open', open);
-    b.textContent = shot.prompt?.prompt || '';
-    b.style.width = page.width + 'px';
-    b.style.left = (page.left - track.scrollLeft) + 'px';
-    b.style.top = (page.top - config.bubbleH) + 'px';
-    b.dataset.shot = String(shot.key);
-    b.addEventListener('click', e => {
-      e.stopPropagation();
-      togglePrompt(shot.key);
-    });
-    return b;
   }
 
   function place(node, x, y, anchor) {
@@ -297,9 +287,26 @@ CPV.view = (() => {
     const dx = track.scrollLeft;
     for (const page of pages) {
       if (page.numEl) page.numEl.style.left = (page.left + page.width - dx) + 'px';
-      if (page.bubbleEl) page.bubbleEl.style.left = (page.left - dx) + 'px';
     }
     const cur = pages[focused];
+    // 가운데 프롬프트: 지금 보고 있는 페이지가 속한 샷의 질문을 보여 준다.
+    if (layer.bubble) {
+      const b = layer.bubble;
+      const shot = cur?.shot;
+      if (!shot?.prompt) { b.style.display = 'none'; }
+      else {
+        b.style.display = '';
+        const key = String(shot.key);
+        if (b.dataset.shot !== key) {
+          b.dataset.shot = key;
+          b.textContent = shot.prompt.prompt || '';
+        }
+        b.classList.toggle('open', expandedPrompts.has(key));
+        b.style.width = cur.width + 'px';
+        b.style.left = (cur.left - dx) + 'px';
+        b.style.top = (cur.top - config.bubbleH) + 'px';
+      }
+    }
     if (layer.counter) {
       layer.counter.textContent = pages.length
         ? `${focused + 1} / ${pages.length}` + (cur?.label ? ` · ${cur.label}` : '')
@@ -397,11 +404,7 @@ CPV.view = (() => {
   function togglePrompt(key) {
     if (expandedPrompts.has(key)) expandedPrompts.delete(key);
     else expandedPrompts.add(key);
-    for (const p of pages) {
-      if (p.bubbleEl && p.bubbleEl.dataset.shot === String(key)) {
-        p.bubbleEl.classList.toggle('open', expandedPrompts.has(key));
-      }
-    }
+    layer.bubble?.classList.toggle('open', expandedPrompts.has(String(key)));
   }
 
   function el(tag, cls) {

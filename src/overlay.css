@@ -56,10 +56,12 @@ html.cpv-on [role="feed"][data-autoscroll-container] {
 .cpv-track:active { cursor: grabbing; }
 
 /* 직접 그리는 가로 스크롤바. OS 설정에 상관없이 항상 보인다. */
+/* 길이를 카드(= 입력창) 폭에 맞추고 가운데 정렬한다. */
 .cpv-scrollbar {
   position: absolute;
-  left: 24px;
-  right: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--cpv-bar-w, 60%);
   bottom: 10px;
   height: 10px;
   border-radius: 999px;

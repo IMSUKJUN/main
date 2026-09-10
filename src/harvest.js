@@ -69,11 +69,10 @@ CPV.harvest = (() => {
     document.documentElement.style.scrollBehavior = 'auto';
 
     try {
-      await sweep(feed, config.harvestStep, onProgress);
+      await sweep(feed, onProgress);
       for (let round = 0; round < 3 && missing().length; round++) {
         await fillGaps(feed, onProgress);
       }
-      if (missing().length) await sweep(feed, config.harvestStep / 2, onProgress);
       lastGaps = missing();
     } finally {
       feed.style.scrollBehavior = savedFeed;
@@ -84,29 +83,58 @@ CPV.harvest = (() => {
     return records();
   }
 
-  // 위에서 아래로 훑는다. 위치가 어긋나도 중단하지 않고 다시 시도한다.
-  async function sweep(feed, stepRatio, onProgress) {
-    const step = Math.max(160, feed.clientHeight * stepRatio);
-    await goTo(feed, 0);
+  // 맨 위로 올라간 뒤 차례로 내려온다.
+  //
+  // 정해진 픽셀 간격으로 내려가면, 그 사이 구간을 앱이 아직 안 그렸을 때 지나쳐 버린다.
+  // 그래서 "마지막으로 본 행"을 기준으로 그 행이 화면 맨 위에 오도록 옮긴다.
+  // 앱이 그린 만큼만 전진하므로 건너뛸 수가 없다.
+  async function sweep(feed, onProgress) {
+    await toTop(feed);
 
-    let top = 0;
-    let stuck = 0;
-    for (let guard = 0; guard < 3000; guard++) {
+    let guard = 0;
+    let prevTop = -1;
+    while (guard++ < 3000) {
+      captureMounted();
       const max = Math.max(0, feed.scrollHeight - feed.clientHeight);
-      if (top >= max - 1) break;
-      const want = Math.min(max, top + step);
-      const got = await goTo(feed, want);
-      onProgress?.(max ? Math.min(0.98, got / max) : 1);
+      const feedTop = feed.getBoundingClientRect().top;
 
-      if (got > top + 1) { top = got; stuck = 0; }
-      else if (++stuck >= 3) {
-        // 세 번 눌러도 안 내려가면 그 지점은 건너뛰고 이어간다.
-        lastLog.push(`${Math.round(want)} 에서 못 내려감`);
-        top = want;
-        stuck = 0;
+      // 지금 붙어 있는 행 중 가장 아래 것
+      let last = null;
+      for (const r of S.rows()) {
+        const i = S.rowIndex(r);
+        if (i == null) continue;
+        if (!last || i > last.i) last = { i, rect: r.getBoundingClientRect() };
       }
+      if (!last) break;
+      if (total && last.i >= total - 1) break;          // 마지막 행까지 봤다
+
+      // 그 행의 위쪽이 화면 맨 위에 오도록
+      let target = feed.scrollTop + (last.rect.top - feedTop);
+      if (target <= feed.scrollTop + 8) target = feed.scrollTop + feed.clientHeight * 0.8;
+      if (target >= max) { await goTo(feed, max); captureMounted(); break; }
+
+      const got = await goTo(feed, target);
+      if (got <= prevTop + 1) {
+        // 안 움직이면 한 화면만큼 강제로 민다
+        lastLog.push(`${Math.round(got)} 에서 안 움직임`);
+        await goTo(feed, Math.min(max, got + feed.clientHeight * 0.8));
+      }
+      prevTop = feed.scrollTop;
+      onProgress?.(max ? Math.min(0.98, feed.scrollTop / max) : 1);
     }
     await goTo(feed, Math.max(0, feed.scrollHeight - feed.clientHeight));
+    captureMounted();
+  }
+
+  // 맨 위로. 0번 행이 붙거나 위쪽 빈 공간이 사라질 때까지 밀어 올린다.
+  async function toTop(feed) {
+    for (let i = 0; i < 8; i++) {
+      await goTo(feed, 0);
+      if (store.has(0)) return;
+      const spacer = document.querySelector('[data-testid="transcript-spacer"]');
+      const h = spacer ? spacer.getBoundingClientRect().height : 0;
+      if (feed.scrollTop <= 2 && h < 80) return;
+    }
   }
 
   // 빠진 줄만 다시 줍는다. 켠 뒤에 프로그램이 스스로 부른다.

@@ -58,6 +58,7 @@ window.CPV = window.CPV || {};
     N.attach(V.root);
     V.root.addEventListener('cpv:rerender', () => V.render(H.records()));
     watch();
+    watchRoute();
     window.addEventListener('resize', onResize);
   }
 
@@ -109,6 +110,8 @@ window.CPV = window.CPV || {};
     host = null;
     observer?.disconnect();
     observer = null;
+    clearInterval(routeTimer);
+    routeTimer = null;
     window.removeEventListener('resize', onResize);
   }
 
@@ -129,6 +132,22 @@ window.CPV = window.CPV || {};
       }, S.isStreaming() ? 400 : 120);
     });
     observer.observe(sizer, { childList: true, subtree: true, characterData: true });
+  }
+
+  // 다른 대화로 옮기면 페이지 보기를 끈다.
+  // 앱이 주소만 바꾸고 화면을 갈아 끼우는 방식(SPA)이라 주소를 지켜본다.
+  let routeTimer = null;
+  let routeAt = '';
+  function watchRoute() {
+    routeAt = S.conversationId();
+    clearInterval(routeTimer);
+    routeTimer = setInterval(() => {
+      if (!on) return;
+      if (S.conversationId() !== routeAt) {
+        turnOff();
+        flash('다른 대화로 옮겨 페이지 보기를 껐다');
+      }
+    }, 500);
   }
 
   function onResize() {

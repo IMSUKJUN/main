@@ -89,7 +89,20 @@ const state = await page.evaluate(() => {
     페이지수: Number(root.dataset.pages),
     strips,
     말풍선: document.querySelectorAll('.cpv-bubble').length,
-    말풍선있는샷: new Set([...document.querySelectorAll('.cpv-bubble')].map(b => b.dataset.shot)).size,
+    말풍선샷: document.querySelector('.cpv-bubble')?.dataset.shot || null,
+    말풍선가운데: (() => {
+      const b = document.querySelector('.cpv-bubble');
+      const root = document.querySelector('.cpv-root');
+      if (!b || !root) return null;
+      const br = b.getBoundingClientRect(), rr = root.getBoundingClientRect();
+      return Math.round((br.left - rr.left) - (rr.width - br.width) / 2);
+    })(),
+    스크롤바가카드폭: (() => {
+      const b = document.querySelector('.cpv-scrollbar');
+      const cs = getComputedStyle(document.querySelector('.cpv-root'));
+      const cardW = Math.round(parseFloat(cs.getPropertyValue('--cpv-card-w')));
+      return { 스크롤바폭: Math.round(b.getBoundingClientRect().width), 카드폭: cardW };
+    })(),
     본문카드묶음: document.querySelectorAll('.cpv-strip[data-kind="body"]').length,
     카운터: document.querySelector('.cpv-counter')?.textContent || null,
     수집한행: Number(root.dataset.rows), 전체행: Number(root.dataset.total),
@@ -272,8 +285,19 @@ const spill = await page.evaluate(() => {
   return { 검사한줄: lines, 페이지밖: out, 경계걸침: straddle, 걸친요소: [...new Set(who)].slice(0, 6) };
 });
 
-await page.click('.cpv-toggle');
-await page.waitForTimeout(300);
+// 다른 대화로 옮기면 꺼지는지
+await page.evaluate(() => history.pushState({}, '', '/chat/other-conversation-1234567890abcdef'));
+await page.waitForTimeout(1200);
+const 대화이동 = await page.evaluate(() => ({
+  덮개남음: !!document.querySelector('.cpv-root'),
+  버튼상태: document.querySelector('.cpv-toggle')?.textContent
+}));
+
+// 대화 이동으로 이미 꺼졌으면 다시 누르지 않는다
+if (await page.evaluate(() => !!document.querySelector('.cpv-root'))) {
+  await page.click('.cpv-toggle');
+  await page.waitForTimeout(300);
+}
 const afterOff = await page.evaluate(() => ({
   덮개남음: !!document.querySelector('.cpv-root'),
   원본대화보임: getComputedStyle(document.querySelector('[data-testid="epitaxy-virtual-transcript"]')).visibility,
@@ -289,6 +313,7 @@ console.log(JSON.stringify({
   프롬프트겹침: bubble,
   도구펼침: { 이전페이지수: beforeTool, 이후페이지수: afterTool, 위치: toolPos },
   잘림검사: spill,
+  대화이동: 대화이동,
   끈뒤: afterOff,
   오류: errors
 }, null, 1));
