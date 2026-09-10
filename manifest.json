@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Claude Page View",
+  "version": "0.1.0",
+  "description": "Claude 대화의 세로 스크롤을 가로 페이지 구조로 바꿔 보여준다.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://claude.ai/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://claude.ai/*"],
+      "js": [
+        "src/config.js",
+        "src/source.js",
+        "src/harvest.js",
+        "src/view.js",
+        "src/nav.js",
+        "src/content.js"
+      ],
+      "css": ["src/overlay.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "toggle-page-view": {
+      "suggested_key": { "default": "Alt+P" },
+      "description": "페이지 보기 켜기/끄기"
+    }
+  }
+}

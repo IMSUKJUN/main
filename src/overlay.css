@@ -1,0 +1,224 @@
+/* 페이지 보기 레이어. 앱 스타일은 건드리지 않고 위에 덮는다. */
+
+.cpv-host {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+}
+
+.cpv-root {
+  position: fixed;
+  overflow: hidden;
+  background: var(--cpv-bg);
+  --cpv-bg: var(--bg-100, #faf9f7);
+  --cpv-surface: var(--bg-000, #ffffff);
+  --cpv-border: var(--border-300, #e5e3df);
+  --cpv-text: var(--text-100, #1f1e1c);
+  --cpv-muted: var(--text-400, #8b8781);
+  --cpv-veil-color: var(--cpv-bg);
+  color: var(--cpv-text);
+  font: inherit;
+}
+
+/* --- 카드 트랙 --- */
+
+.cpv-track {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cpv-gap);
+  padding-top: var(--cpv-card-top);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  cursor: grab;
+  overscroll-behavior: contain;
+}
+.cpv-track::-webkit-scrollbar { display: none; }
+.cpv-track:active { cursor: grabbing; }
+
+.cpv-lead, .cpv-tail { height: 1px; }
+
+/* 한 덩어리(본문 또는 도구 내역)를 다단으로 흘려 페이지를 만든다.
+   조각마다 테두리가 온전히 그려지도록 box-decoration-break 를 clone 으로 둔다.
+   카드에 높이를 주면 상자가 한 단에 다 들어가 조각이 안 생기므로 높이는 컨테이너만 갖는다. */
+.cpv-strip {
+  flex: 0 0 auto;
+  height: var(--cpv-card-h);
+  column-gap: var(--cpv-gap);
+  column-fill: auto;
+}
+
+.cpv-card {
+  box-sizing: border-box;
+  min-height: var(--cpv-card-h);
+  padding: 22px 26px;
+  border: 1px solid var(--cpv-border);
+  border-radius: 14px;
+  background: var(--cpv-surface);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.cpv-strip[data-kind="tool"] .cpv-card {
+  background: color-mix(in srgb, var(--cpv-surface) 88%, var(--cpv-bg));
+  border-style: dashed;
+}
+
+/* 페이지 경계에서 잘리면 안 되는 것들 */
+.cpv-card p,
+.cpv-card li,
+.cpv-card h1, .cpv-card h2, .cpv-card h3,
+.cpv-card table,
+.cpv-card .epitaxy-table-scroll,
+.cpv-card .epitaxy-codeblock,
+.cpv-card .cpv-code {
+  break-inside: avoid;
+}
+
+/* 코드블록 안쪽은 shadow DOM 이라 복제하면 비어 있다.
+   data-code-text 로 되살린 자리를 우리가 직접 꾸민다. */
+.cpv-code {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--cpv-text) 5%, transparent);
+  font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.cpv-row + .cpv-row { margin-top: 10px; }
+
+/* 도구 내역 접힘 줄 */
+.cpv-toolline {
+  display: block;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--cpv-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cpv-muted);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  break-inside: avoid;
+}
+.cpv-toolline:hover { color: var(--cpv-text); }
+
+/* 세션 상태 칩 (marker 행) */
+.cpv-chip {
+  flex: 0 0 auto;
+  align-self: center;
+  max-width: 140px;
+  margin-top: calc(var(--cpv-card-h) / 2 * -1);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cpv-text) 6%, transparent);
+  color: var(--cpv-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- 초점 --- */
+
+.cpv-veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: background 160ms ease-out;
+}
+
+/* --- 겹쳐 그리는 것들: 말풍선, 페이지 번호, 액션 바 --- */
+
+.cpv-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.cpv-layer > * { pointer-events: auto; }
+
+.cpv-bubble {
+  position: absolute;
+  box-sizing: border-box;
+  max-height: calc(var(--cpv-bubble-h) - 10px);
+  padding: 6px 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--cpv-text) 7%, transparent);
+  color: var(--cpv-text);
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+/* 펼치면 아래 카드 위로 겹친다. 카드는 밀리지 않는다.
+   카드가 position:relative 이므로 z-index 를 반드시 준다(측정 확인됨). */
+.cpv-bubble.open {
+  z-index: 40;
+  max-height: calc(var(--cpv-card-h) * 0.8);
+  overflow-y: auto;
+  white-space: normal;
+  background: var(--cpv-surface);
+  border: 1px solid var(--cpv-border);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .12);
+}
+
+.cpv-pageno {
+  position: absolute;
+  margin: -14px -18px 0 0;
+  color: var(--cpv-muted);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.cpv-actions {
+  position: absolute;
+  display: flex;
+  gap: 14px;
+  padding-left: 4px;
+  color: var(--cpv-muted);
+  font-size: 12px;
+}
+
+/* --- 켜고 끄는 버튼, 안내 --- */
+
+.cpv-toggle {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 2147483100;
+  padding: 8px 14px;
+  border: 1px solid var(--border-300, #e5e3df);
+  border-radius: 999px;
+  background: var(--bg-000, #fff);
+  color: var(--text-100, #1f1e1c);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .08);
+}
+.cpv-toggle.is-on {
+  background: var(--text-100, #1f1e1c);
+  color: var(--bg-000, #fff);
+}
+
+.cpv-progress {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 2147483200;
+  transform: translate(-50%, -50%);
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, .78);
+  color: #fff;
+  font-size: 13px;
+}

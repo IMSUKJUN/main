@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<title>claude.ai 대화창 모사</title>
+<style>
+  html,body{margin:0;height:100%;font:16px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif;
+            background:#faf9f7;color:#1f1e1c}
+  .app{height:100%;display:grid;grid-template-rows:52px 1fr 96px}
+  .head{display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #eceae6;font-size:14px}
+  .pane{min-height:0;display:flex;overflow:clip;contain:strict}
+  .feed{flex:1;height:100%;overflow-y:auto;overflow-x:hidden;contain:strict;overflow-anchor:none}
+  .sizer{position:relative}
+  .row{display:flow-root;position:relative}
+  .col{margin:0 auto;max-width:768px;padding:0 32px}
+  .user{margin-left:auto;width:fit-content;max-width:80%;padding:10px 16px;border-radius:16px;background:#efedea}
+  .prose p{margin:1em 0}
+  .epitaxy-table-scroll{overflow-x:auto;border:1px solid #e5e3df;border-radius:8px;margin:1em 0}
+  table{border-collapse:collapse;min-width:720px}
+  td,th{border:1px solid #eceae6;padding:6px 10px;white-space:nowrap;text-align:left}
+  .epitaxy-codeblock{position:relative;max-width:100%;width:fit-content;min-width:min(100%,318px);margin:1em 0}
+  .epitaxy-diff{border-radius:8px;overflow:clip;background:#f4f3f1}
+  .toolbtn{border:0;background:transparent;color:#8b8781;font:inherit;font-size:14px;cursor:pointer;padding:4px 0}
+  .composer{border-top:1px solid #eceae6;display:flex;align-items:center;justify-content:center;color:#8b8781}
+</style></head>
+<body>
+<div class="app">
+  <div class="head">논문 / 논문_문헌검색6 · 모사 화면</div>
+  <div class="pane">
+    <div class="feed" role="feed" aria-busy="false"
+         data-testid="epitaxy-virtual-transcript" data-autoscroll-container>
+      <div class="sizer" data-rocksteady-sizer data-testid="transcript-sizer"></div>
+    </div>
+  </div>
+  <div class="composer">메시지를 입력하세요…</div>
+</div>
+
+<script>
+// ---- 대화 데이터 만들기 -------------------------------------------------
+const SHOTS = [
+  { q: '스크롤 구조를 페이지 구조로 바꾸는 확장 프로그램을 만들고 싶다. 가능한지부터 확인해줘.',
+    tool: '실행됨 · 명령 12개', paras: 26, marker: '세션 초기화됨' },
+  { q: '단순 텍스트만이 아니라 표와 코드블록이 섞여 있는데도 되나?',
+    tool: '실행됨 · 명령 15개 (2개 실패)', paras: 14, marker: '세션 재개됨' },
+  { q: '가상 스크롤 상태는 어떻게 확인하지?', tool: '실행됨 · 명령 4개', paras: 34 },
+  { q: '도구 내역은 본문 오른쪽에 두는 게 맞겠다.', tool: '실행됨 · 명령 7개', paras: 9 }
+];
+const LOREM = '가나다라마바사아자차카타파하 아야어여오요우유으이 ';
+
+function proseHTML(n, seed) {
+  let out = '';
+  for (let i = 0; i < n; i++) {
+    if (i === 4) out += tableHTML(seed);
+    else if (i === 9) out += codeHTML(24 + seed);
+    else if (i === 17) out += codeHTML(52 + seed);
+    else if (i % 6 === 3) out += '<h3>소제목 ' + i + '</h3>';
+    else if (i % 5 === 2) out += '<ul>' + [0,1,2].map(k => '<li>목록 항목 ' + i + '.' + k + ' ' + LOREM.slice(0, 30) + '</li>').join('') + '</ul>';
+    else out += '<p>문단 ' + i + '. ' + LOREM.repeat(3) + '</p>';
+  }
+  return out;
+}
+function tableHTML(seed) {
+  const rows = [0,1,2,3].map(r =>
+    '<tr>' + [0,1,2,3].map(c => '<td>값 ' + (seed + r) + '-' + c + '</td>').join('') + '</tr>').join('');
+  return '<div class="prose-scroll"><div class="epitaxy-table-scroll"><table><thead><tr>'
+       + ['항목','측정값','비고','출처'].map(h => '<th>' + h + '</th>').join('')
+       + '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+}
+function codeHTML(lines) {
+  const code = Array.from({length: lines}, (_, i) => 'const line' + i + ' = ' + i + ';').join('\n');
+  return '<div data-not-prose><div class="epitaxy-codeblock"><div class="epitaxy-diff" '
+       + 'data-code-text="' + code.replace(/"/g, '&quot;').replace(/\n/g, '&#10;') + '">'
+       + '<diffs-container></diffs-container></div></div></div>';
+}
+
+const sizer = document.querySelector('.sizer');
+const feed = document.querySelector('.feed');
+const ROWS = [];
+let idx = 0;
+SHOTS.forEach((shot, s) => {
+  ROWS.push({ index: idx++, type: 'human', entry: s, item: null,
+              html: '<div class="col"><div class="user">' + shot.q + '</div></div>' });
+  if (shot.marker) {
+    ROWS.push({ index: idx++, type: 'marker', entry: null, item: null,
+                html: '<div class="col" style="text-align:center;color:#8b8781;font-size:13px">' + shot.marker + '</div>' });
+  }
+  ROWS.push({ index: idx++, type: 'assistant_tool', entry: s, item: 0,
+              html: '<div class="col"><button class="toolbtn" aria-expanded="false">' + shot.tool + '</button></div>' });
+  ROWS.push({ index: idx++, type: 'assistant_text', entry: s, item: 1,
+              html: '<div class="col"><div class="prose">' + proseHTML(shot.paras, s * 7) + '</div></div>' });
+});
+
+// ---- 가상 스크롤 (실제 화면과 같은 방식으로 화면 밖 행을 뗀다) -----------
+const topSpacer = document.createElement('div');
+topSpacer.dataset.testid = 'transcript-spacer'; topSpacer.setAttribute('aria-hidden', 'true');
+const botSpacer = topSpacer.cloneNode();
+sizer.append(topSpacer, botSpacer);
+
+const heights = new Array(ROWS.length).fill(0);
+function measureAll() {
+  // 처음 한 번은 전부 붙여 높이를 잰 뒤 뗀다.
+  ROWS.forEach((r, i) => { const n = makeRow(r); sizer.insertBefore(n, botSpacer); heights[i] = n.offsetHeight; n.remove(); });
+}
+function makeRow(r) {
+  const n = document.createElement('div');
+  n.className = 'row';
+  n.dataset.testid = 'transcript-row';
+  n.dataset.index = r.index; n.dataset.rsIndex = r.index;
+  n.dataset.perfRow = r.type; n.dataset.perfRowStreaming = 'false';
+  n.style.cssText = 'display:flow-root;position:relative';
+  if (r.entry != null) {
+    const wrap = document.createElement('div');
+    wrap.dataset.epitaxyEntry = 'key-' + r.entry;
+    wrap.dataset.epitaxyEntryIndex = String(r.entry);
+    if (r.item != null) wrap.dataset.epitaxyItemIndex = String(r.item);
+    wrap.dataset.entryKey = 'key-' + r.entry;
+    wrap.innerHTML = r.html;
+    n.appendChild(wrap);
+  } else {
+    n.innerHTML = r.html;
+  }
+  n.querySelectorAll('.epitaxy-diff').forEach(d => {
+    const host = d.querySelector('diffs-container');
+    if (!host || host.shadowRoot) return;
+    const sr = host.attachShadow({ mode: 'open' });
+    sr.innerHTML = '<style>:host{display:block}pre{margin:0;padding:12px;'
+      + 'font:12px/1.55 ui-monospace,monospace;white-space:pre;overflow:visible}'
+      + 'code{display:block;overflow:clip}</style>'
+      + '<pre><code>' + (d.getAttribute('data-code-text') || '') + '</code></pre>';
+  });
+  return n;
+}
+const offsets = [0];
+function buildOffsets() { for (let i = 0; i < ROWS.length; i++) offsets[i + 1] = offsets[i] + heights[i]; }
+
+function renderWindow() {
+  const s = feed.scrollTop, h = feed.clientHeight, pad = 1200;
+  let first = 0; while (first < ROWS.length - 1 && offsets[first + 1] < s - pad) first++;
+  let last = first; while (last < ROWS.length - 1 && offsets[last + 1] < s + h + pad) last++;
+  [...sizer.querySelectorAll('[data-testid="transcript-row"]')].forEach(n => {
+    const i = Number(n.dataset.index);
+    if (i < first || i > last) n.remove();
+  });
+  for (let i = first; i <= last; i++) {
+    if (sizer.querySelector('[data-index="' + i + '"]')) continue;
+    const node = makeRow(ROWS[i]);
+    const after = [...sizer.querySelectorAll('[data-testid="transcript-row"]')].find(n => Number(n.dataset.index) > i);
+    sizer.insertBefore(node, after || botSpacer);
+  }
+  topSpacer.style.height = offsets[first] + 'px';
+  botSpacer.style.height = (offsets[ROWS.length] - offsets[last + 1]) + 'px';
+}
+
+measureAll();
+buildOffsets();
+renderWindow();
+feed.addEventListener('scroll', renderWindow);
+
+window.__mock = { rows: ROWS.length, total: offsets[ROWS.length] };
+window.__ready = true;
+</script>
+</body></html>
