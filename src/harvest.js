@@ -9,6 +9,9 @@
 //  2. 행 높이를 재는 동안 전체 높이가 계속 바뀐다(실측 28981 → 28626 → 35600).
 //  3. 수집한 번호들 사이만 봐서는 맨 위를 통째로 못 읽은 경우를 알 수 없다.
 //     행마다 붙어 있는 data-perf-row-from-tail(끝에서 몇 번째)로 전체 수를 알아낸다.
+//  4. 대화창을 연 직후에는 앱이 아직 기록을 받아오는 중이라 행이 몇 개밖에 없다.
+//     그 상태로 훑으면 없는 것을 읽는다. 그래서 더 안 늘어날 때까지 기다렸다 시작하고,
+//     읽는 도중에 늘어나면 늘어난 만큼 다시 훑는다.
 window.CPV = window.CPV || {};
 
 CPV.harvest = (() => {
@@ -69,7 +72,24 @@ CPV.harvest = (() => {
     document.documentElement.style.scrollBehavior = 'auto';
 
     try {
+      // 다 실려 올 때까지 기다린 뒤에 시작한다.
+      await settle(feed, p => onProgress?.(p, 'load'));
+      // 기다리는 동안 주워 둔 것은 버린다. 덜 실린 상태에서 잰 자리·번호는 믿을 수 없다.
+      store.clear();
+
+      let before = total;
       await sweep(feed, onProgress);
+      // 읽는 동안 위쪽 기록이 더 실려 오는 일이 있다(맨 위에 닿으면 앱이 더 받아온다).
+      // 전체 행 수가 늘었으면 늘어난 만큼 다시 훑는다.
+      for (let round = 0; round < config.regrowRounds && total > before; round++) {
+        lastLog.push(`읽는 중 전체가 ${before} → ${total} 행으로 늘어 다시 읽음`);
+        before = total;
+        await settle(feed, p => onProgress?.(p, 'load'));
+        // 늘어난 뒤에는 자리가 전부 밀려 있다. 앞서 읽은 것을 버리고 처음부터 다시 읽는다.
+        store.clear();
+        await sweep(feed, onProgress);
+      }
+
       for (let round = 0; round < 3 && missing().length; round++) {
         await fillGaps(feed, onProgress);
       }
@@ -79,8 +99,32 @@ CPV.harvest = (() => {
       document.documentElement.style.scrollBehavior = savedRoot;
       await goTo(feed, start);
     }
-    onProgress?.(1);
+    onProgress?.(1, 'read');
     return records();
+  }
+
+  // 대화가 다 실려 올 때까지 기다린다.
+  //
+  // 전체 행 수(from-tail 로 계산), 대화창 전체 높이, 붙어 있는 행 수 세 가지를 본다.
+  // 셋 다 연속으로 안 변하면 더 들어올 것이 없다고 본다.
+  // 정해진 시간이 지나도 안 끝나면 그냥 시작한다(계속 생성 중인 답변도 있기 때문).
+  async function settle(feed, onWait) {
+    feed = feed || S.feed();
+    if (!feed) return false;
+    const t0 = Date.now();
+    let key = '';
+    let same = 0;
+    while (Date.now() - t0 < config.settleMax) {
+      captureMounted();
+      const now = `${total}/${Math.round(feed.scrollHeight)}/${S.rows().length}`;
+      if (now === key) same++;
+      else { same = 0; key = now; }
+      if (same >= config.settleSame) return true;
+      onWait?.(Math.min(0.99, (Date.now() - t0) / config.settleMax));
+      await wait(config.settleInterval);
+    }
+    lastLog.push('불러오기가 안 끝나 그대로 시작');
+    return false;
   }
 
   // 맨 위로 올라간 뒤 차례로 내려온다.
@@ -90,6 +134,8 @@ CPV.harvest = (() => {
   // 앱이 그린 만큼만 전진하므로 건너뛸 수가 없다.
   async function sweep(feed, onProgress) {
     await toTop(feed);
+    // 맨 위에 닿으면 앱이 더 오래된 기록을 받아오기 시작한다. 그것도 기다린다.
+    await settle(feed, p => onProgress?.(p, 'load'));
 
     let guard = 0;
     let prevTop = -1;
@@ -120,7 +166,7 @@ CPV.harvest = (() => {
         await goTo(feed, Math.min(max, got + feed.clientHeight * 0.8));
       }
       prevTop = feed.scrollTop;
-      onProgress?.(max ? Math.min(0.98, feed.scrollTop / max) : 1);
+      onProgress?.(max ? Math.min(0.98, feed.scrollTop / max) : 1, 'read');
     }
     await goTo(feed, Math.max(0, feed.scrollHeight - feed.clientHeight));
     captureMounted();
@@ -175,7 +221,7 @@ CPV.harvest = (() => {
       for (const off of [h * 0.5, h * 0.9, h * 0.1, 0]) {
         if (store.has(i)) break;
         await goTo(feed, Math.max(0, at - off));
-        onProgress?.(0.99);
+        onProgress?.(0.99, 'read');
       }
     }
   }
@@ -262,5 +308,5 @@ CPV.harvest = (() => {
 
   function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  return { all, fillMissing, captureMounted, records, clear, coverage, missing };
+  return { all, fillMissing, captureMounted, records, clear, coverage, missing, settle };
 })();

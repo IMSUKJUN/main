@@ -49,7 +49,7 @@ CPV.view = (() => {
     if (comp && comp.top > r.top + 120 && comp.top < r.top + r.height) {
       r = { left: r.left, top: r.top, width: r.width, height: comp.top - r.top - 8 };
     }
-    const availH = r.height - config.padY * 2 - config.bubbleH - config.actionsH;
+    const availH = r.height - config.padY * 2 - config.bubbleH - config.bottomH;
     let cardH = Math.max(240, availH);
     // 폭은 원래 스크롤 화면의 글줄 폭에 맞춘다. 못 읽으면 8:10 비율로 돌아간다.
     let col = config.matchColumnWidth ? S.columnWidth() : 0;
@@ -213,6 +213,10 @@ CPV.view = (() => {
       strip.style.columnCount = String(pageCount);
       strip.style.columnWidth = 'auto';
       strip.style.width = (pageCount * geom.cardW + (pageCount - 1) * geom.gap) + 'px';
+      // 카드 상자 높이를 "페이지 수 × 카드 높이"로 못박는다.
+      // 이러지 않으면 내용이 짧은 마지막 페이지만 낮게 그려진다.
+      const card = strip.querySelector('.cpv-card');
+      if (card) card.style.height = (pageCount * geom.cardH) + 'px';
     }
   }
 
@@ -246,7 +250,7 @@ CPV.view = (() => {
     for (const page of pages) {
       const num = el('div', 'cpv-pageno');
       num.textContent = page.label;
-      place(num, page.left + page.width, page.top + page.height, 'br');
+      place(num, page.left, page.top + page.height, 'bl');
       layer.append(num);
       page.numEl = num;
     }
@@ -264,20 +268,13 @@ CPV.view = (() => {
     const counter = el('div', 'cpv-counter');
     layer.append(counter);
     layer.counter = counter;
-
-    const actions = el('div', 'cpv-actions');
-    actions.innerHTML = '<span>복사</span><span>읽어주기</span><span>좋아요</span><span>싫어요</span><span>다시</span>';
-    layer.append(actions);
-    layer.actions = actions;
   }
 
   function place(node, x, y, anchor) {
     node.style.position = 'absolute';
-    if (anchor === 'br') {
-      node.style.left = (x - track.scrollLeft) + 'px';
-      node.style.top = y + 'px';
-      node.style.transform = 'translate(-100%, -100%)';
-    }
+    node.style.left = (x - track.scrollLeft) + 'px';
+    node.style.top = y + 'px';
+    node.style.transform = anchor === 'bl' ? 'translate(0, -100%)' : 'translate(-100%, -100%)';
     node.dataset.x = String(x);
     node.dataset.y = String(y);
   }
@@ -286,7 +283,7 @@ CPV.view = (() => {
   function syncLayer() {
     const dx = track.scrollLeft;
     for (const page of pages) {
-      if (page.numEl) page.numEl.style.left = (page.left + page.width - dx) + 'px';
+      if (page.numEl) page.numEl.style.left = (page.left - dx) + 'px';
     }
     const cur = pages[focused];
     // 가운데 프롬프트: 지금 보고 있는 페이지가 속한 샷의 질문을 보여 준다.
@@ -311,11 +308,6 @@ CPV.view = (() => {
       layer.counter.textContent = pages.length
         ? `${focused + 1} / ${pages.length}` + (cur?.label ? ` · ${cur.label}` : '')
         : '';
-    }
-    if (cur && layer.actions) {
-      layer.actions.style.left = (cur.left - dx) + 'px';
-      layer.actions.style.top = (cur.top + cur.height + 8) + 'px';
-      layer.actions.style.width = cur.width + 'px';
     }
     paintVeil();
     paintBar();

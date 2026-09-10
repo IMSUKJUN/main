@@ -42,8 +42,11 @@ window.CPV = window.CPV || {};
     host.appendChild(progress);
 
     // 가상 스크롤 때문에 화면 밖 행은 DOM에 없다. 한 번 훑어 모은다.
-    const records = await H.all(p => {
-      progress.textContent = `대화를 읽는 중… ${Math.round(p * 100)}%`;
+    // 켠 직후에는 앱이 아직 기록을 받아오는 중일 수 있어 먼저 그것을 기다린다.
+    const records = await H.all((p, phase) => {
+      progress.textContent = phase === 'load'
+        ? '대화를 불러오는 중…'
+        : `대화를 읽는 중… ${Math.round(p * 100)}%`;
     });
     progress.remove();
 

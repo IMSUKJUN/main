@@ -64,7 +64,8 @@ await page.screenshot({ path: path.join(shots, '01-before.png') });
 
 await page.click('.cpv-toggle');
 await page.waitForFunction(() => document.querySelectorAll('.cpv-strip').length > 0, null, { timeout: 120000 });
-await page.waitForFunction(() => !document.querySelector('.cpv-progress'), null, { timeout: 8000 });
+// 다 실려 올 때까지 기다렸다 읽으므로 넉넉히 준다
+await page.waitForFunction(() => !document.querySelector('.cpv-progress'), null, { timeout: 90000 });
 // 못 읽은 줄을 스스로 다시 읽는 과정이 끝날 때까지 기다린다
 await page.waitForFunction(() => {
   const n = document.querySelector('.cpv-note');
@@ -119,6 +120,35 @@ const state = await page.evaluate(() => {
                색: getComputedStyle(th).backgroundColor };
     })(),
     페이지번호: document.querySelectorAll('.cpv-pageno').length,
+    액션바: document.querySelectorAll('.cpv-actions').length,
+    페이지번호왼쪽: (() => {
+      const cards = [...document.querySelectorAll('.cpv-strip')]
+        .flatMap(s => [...(s.querySelector('.cpv-card') || s).getClientRects()])
+        .sort((a, b) => a.left - b.left);
+      const nums = [...document.querySelectorAll('.cpv-pageno')]
+        .map(n => n.getBoundingClientRect()).sort((a, b) => a.left - b.left);
+      if (!cards.length || !nums.length) return null;
+      const off = nums.map((n, i) => cards[i] ? Math.round(n.left - cards[i].left) : null)
+        .filter(v => v != null);
+      return { 카드왼쪽에서: off.slice(0, 4), 전부왼쪽: off.every(v => v >= 0 && v < 60) };
+    })(),
+    마지막쪽높이: (() => {
+      const cs = getComputedStyle(document.querySelector('.cpv-root'));
+      const cardH = Math.round(parseFloat(cs.getPropertyValue('--cpv-card-h')));
+      const bad = [];
+      for (const s of document.querySelectorAll('.cpv-strip')) {
+        const card = s.querySelector('.cpv-card');
+        if (!card) continue;
+        const pages = Number(s.dataset.pages);
+        const rects = [...card.getClientRects()];
+        const last = rects[rects.length - 1];
+        if (!last) continue;
+        if (Math.abs(Math.round(last.height) - cardH) > 2) {
+          bad.push({ 묶음: s.dataset.kind, 쪽수: pages, 마지막높이: Math.round(last.height) });
+        }
+      }
+      return { 카드높이: cardH, 높이가다른쪽: bad };
+    })(),
     칩: document.querySelectorAll('.cpv-chip').length,
     도구줄: document.querySelectorAll('.cpv-toolline').length,
     코드복원: document.querySelectorAll('.cpv-code').length,
@@ -306,7 +336,8 @@ const afterOff = await page.evaluate(() => ({
 await page.screenshot({ path: path.join(shots, '06-after-off.png') });
 
 console.log(JSON.stringify({
-  모사화면: { 전체행: mock.rows, 전체높이: mock.total, 처음마운트된행: mounted },
+  모사화면: { 전체행: mock.rows, 샷수: mock.shots, 전체높이: mock.total, 처음마운트된행: mounted },
+  샷수맞음: state.본문카드묶음 === mock.shots,
   켠뒤: state,
   가운데정렬: centering,
   휠: wheel,

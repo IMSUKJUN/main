@@ -97,6 +97,7 @@ html.cpv-on [role="feed"][data-autoscroll-container] {
 .cpv-card {
   box-sizing: border-box;
   min-height: var(--cpv-card-h);
+  /* 높이는 view.js 가 "페이지 수 × 카드 높이" 로 못박는다. */
   padding: 22px 26px;
   border: 1px solid var(--cpv-border);
   border-radius: 14px;
@@ -221,19 +222,10 @@ html.cpv-on [role="feed"][data-autoscroll-container] {
 
 .cpv-pageno {
   position: absolute;
-  margin: -14px -18px 0 0;
+  margin: -14px 0 0 18px;
   color: var(--cpv-muted);
   font-size: 12px;
   pointer-events: none;
-}
-
-.cpv-actions {
-  position: absolute;
-  display: flex;
-  gap: 14px;
-  padding-left: 4px;
-  color: var(--cpv-muted);
-  font-size: 12px;
 }
 
 /* 답변이 아직 없는 샷 */

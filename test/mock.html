@@ -124,7 +124,12 @@ function makeRow(r) {
   const n = document.createElement('div');
   n.className = 'row';
   n.dataset.testid = 'transcript-row';
-  n.dataset.index = r.index; n.dataset.rsIndex = r.index;
+  // 번호는 "지금 실려 있는 목록" 안에서의 자리다. 오래된 것이 뒤늦게 들어오면
+  // 같은 행의 번호가 통째로 밀린다. 실제 화면이 어느 쪽인지 확인할 길이 없어
+  // 나쁜 쪽으로 가정해 둔다. 끝에서 몇 번째(from-tail)는 언제나 맞다.
+  n.dataset.trueIndex = r.index;
+  n.dataset.index = String(r.index - loadedFrom);
+  n.dataset.rsIndex = n.dataset.index;
   n.dataset.perfRow = r.type; n.dataset.perfRowStreaming = 'false';
   n.dataset.perfRowFromTail = String(ROWS.length - 1 - r.index);   // 실제 화면에도 있는 값
   n.style.cssText = 'display:flow-root;position:relative';
@@ -157,24 +162,40 @@ function makeRow(r) {
 const offsets = [0];
 function buildOffsets() { for (let i = 0; i < ROWS.length; i++) offsets[i + 1] = offsets[i] + heights[i]; }
 
+// 실제 화면처럼 처음에는 끝쪽 일부만 실려 있고, 오래된 것이 뒤늦게 들어온다.
+// 켜기 버튼을 바로 누르면 아직 다 안 실린 상태라 그대로 읽으면 앞부분이 통째로 빠진다.
+let loadedFrom = Math.max(0, ROWS.length - 10);
+const loadTimer = setInterval(() => {
+  if (loadedFrom <= 0) { clearInterval(loadTimer); return; }
+  const before = offsets[ROWS.length] - offsets[loadedFrom];
+  loadedFrom = Math.max(0, loadedFrom - 6);
+  const after = offsets[ROWS.length] - offsets[loadedFrom];
+  // 위쪽이 늘어나면 보고 있던 자리도 그만큼 밀린다(실제 화면과 같다).
+  feed.scrollTop += after - before;
+  renderWindow();
+}, 400);
+
 function renderWindow() {
-  const s = feed.scrollTop, h = feed.clientHeight, pad = 1200;
-  let first = 0; while (first < ROWS.length - 1 && offsets[first + 1] < s - pad) first++;
+  const s = feed.scrollTop + offsets[loadedFrom], h = feed.clientHeight, pad = 1200;
+  let first = loadedFrom; while (first < ROWS.length - 1 && offsets[first + 1] < s - pad) first++;
   let last = first; while (last < ROWS.length - 1 && offsets[last + 1] < s + h + pad) last++;
   [...sizer.querySelectorAll('[data-testid="transcript-row"]')].forEach(n => {
-    const i = Number(n.dataset.index);
-    if (i < first || i > last) n.remove();
+    const i = Number(n.dataset.trueIndex);
+    if (i < first || i > last) { n.remove(); return; }
+    // 앞이 더 실리면 번호가 밀린다
+    n.dataset.index = String(i - loadedFrom);
+    n.dataset.rsIndex = n.dataset.index;
   });
   for (let i = first; i <= last; i++) {
     // 13번 행은 바로 그 자리에 갔을 때만 붙는다.
     // 훑기 한 번으로 놓치는 행이 생기는 경우를 만들어, 다시 줍는 과정을 시험한다.
-    if (i === 13 && Math.abs(feed.scrollTop - offsets[13]) > 400) continue;
-    if (sizer.querySelector('[data-index="' + i + '"]')) continue;
+    if (i === 13 && Math.abs(s - offsets[13]) > 400) continue;
+    if (sizer.querySelector('[data-true-index="' + i + '"]')) continue;
     const node = makeRow(ROWS[i]);
-    const after = [...sizer.querySelectorAll('[data-testid="transcript-row"]')].find(n => Number(n.dataset.index) > i);
+    const after = [...sizer.querySelectorAll('[data-testid="transcript-row"]')].find(n => Number(n.dataset.trueIndex) > i);
     sizer.insertBefore(node, after || botSpacer);
   }
-  topSpacer.style.height = offsets[first] + 'px';
+  topSpacer.style.height = (offsets[first] - offsets[loadedFrom]) + 'px';
   botSpacer.style.height = (offsets[ROWS.length] - offsets[last + 1]) + 'px';
 }
 
@@ -199,7 +220,7 @@ feed.addEventListener('scroll', () => {
   if (pinned) { pinned = false; feed.scrollTop = feed.scrollHeight; }
 });
 
-window.__mock = { rows: ROWS.length, total: offsets[ROWS.length] };
+window.__mock = { rows: ROWS.length, shots: SHOTS.length, total: offsets[ROWS.length] };
 window.__ready = true;
 </script>
 </body></html>
