@@ -165,15 +165,25 @@ function buildOffsets() { for (let i = 0; i < ROWS.length; i++) offsets[i + 1] =
 // 실제 화면처럼 처음에는 끝쪽 일부만 실려 있고, 오래된 것이 뒤늦게 들어온다.
 // 켜기 버튼을 바로 누르면 아직 다 안 실린 상태라 그대로 읽으면 앞부분이 통째로 빠진다.
 let loadedFrom = Math.max(0, ROWS.length - 10);
-const loadTimer = setInterval(() => {
-  if (loadedFrom <= 0) { clearInterval(loadTimer); return; }
-  const before = offsets[ROWS.length] - offsets[loadedFrom];
-  loadedFrom = Math.max(0, loadedFrom - 6);
-  const after = offsets[ROWS.length] - offsets[loadedFrom];
-  // 위쪽이 늘어나면 보고 있던 자리도 그만큼 밀린다(실제 화면과 같다).
-  feed.scrollTop += after - before;
-  renderWindow();
-}, 400);
+let loading = false;
+// 이전 내역은 맨 위 가까이 갔을 때 비로소 받아오기 시작하고, 바로 나오지도 않는다.
+// 닿자마자 내려가면 아직 안 나온 앞부분을 통째로 놓친다. 그 조건을 그대로 넣는다.
+function maybeLoadOlder() {
+  if (loading || loadedFrom <= 0) return;
+  if (feed.scrollTop > 300) return;
+  loading = true;
+  setTimeout(() => {
+    const before = offsets[ROWS.length] - offsets[loadedFrom];
+    loadedFrom = Math.max(0, loadedFrom - 6);
+    const after = offsets[ROWS.length] - offsets[loadedFrom];
+    // 위쪽이 늘어나면 보고 있던 자리도 그만큼 밀린다(실제 화면과 같다).
+    feed.scrollTop += after - before;
+    renderWindow();
+    loading = false;
+    window.__loads = (window.__loads || 0) + 1;
+    window.__loadedFrom = loadedFrom;
+  }, 600);
+}
 
 function renderWindow() {
   const s = feed.scrollTop + offsets[loadedFrom], h = feed.clientHeight, pad = 1200;
@@ -209,15 +219,22 @@ function renderLater() {
   renderTimer = setTimeout(renderWindow, 220);
 }
 feed.addEventListener('scroll', renderLater);
+feed.addEventListener('scroll', maybeLoadOlder);
+// 스크롤 이벤트가 아니라 맨 위가 보이는지로 판단한다(실제 앱과 같다).
+setInterval(maybeLoadOlder, 120);
 
 // 실제 화면처럼 맨 아래로 끌어당기는 동작(data-autoscroll-container).
 // 아래에 붙어 있는 동안 위로 옮기려 하면 한 번 되돌린다.
 let pinned = true;
+let yanking = false;
 feed.scrollTop = feed.scrollHeight;
 feed.addEventListener('scroll', () => {
+  // 되돌리느라 우리가 낸 스크롤은 세지 않는다.
+  // 이걸 안 세면 되돌릴 때마다 "바닥에 있음" 이 다시 켜져 영영 못 벗어난다.
+  if (yanking) { yanking = false; return; }
   const atBottom = feed.scrollHeight - feed.clientHeight - feed.scrollTop < 4;
   if (atBottom) { pinned = true; return; }
-  if (pinned) { pinned = false; feed.scrollTop = feed.scrollHeight; }
+  if (pinned) { pinned = false; yanking = true; feed.scrollTop = feed.scrollHeight; }
 });
 
 window.__mock = { rows: ROWS.length, shots: SHOTS.length, total: offsets[ROWS.length] };

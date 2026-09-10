@@ -44,9 +44,10 @@ window.CPV = window.CPV || {};
     // 가상 스크롤 때문에 화면 밖 행은 DOM에 없다. 한 번 훑어 모은다.
     // 켠 직후에는 앱이 아직 기록을 받아오는 중일 수 있어 먼저 그것을 기다린다.
     const records = await H.all((p, phase) => {
-      progress.textContent = phase === 'load'
-        ? '대화를 불러오는 중…'
-        : `대화를 읽는 중… ${Math.round(p * 100)}%`;
+      progress.textContent =
+        phase === 'load' ? '대화를 불러오는 중…' :
+        phase === 'top' ? '이전 내역을 불러오는 중…' :
+        `대화를 읽는 중… ${Math.round(p * 100)}%`;
     });
     progress.remove();
 
@@ -89,6 +90,7 @@ window.CPV = window.CPV || {};
     V.root.dataset.total = String(cov.전체행);
     V.root.dataset.gaps = String(cov.빠진개수);
     V.root.dataset.range = (cov.번호범위 || []).join('-');
+    V.root.dataset.log = (cov.기록 || []).join('|');
   }
 
   let note = null;

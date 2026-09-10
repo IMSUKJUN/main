@@ -71,28 +71,29 @@ CPV.harvest = (() => {
     feed.style.scrollBehavior = 'auto';
     document.documentElement.style.scrollBehavior = 'auto';
 
+    const t0 = Date.now();
+    const mark = what => lastLog.push(`${what} ${((Date.now() - t0) / 1000).toFixed(1)}초`);
     try {
       // 다 실려 올 때까지 기다린 뒤에 시작한다.
       await settle(feed, p => onProgress?.(p, 'load'));
-      // 기다리는 동안 주워 둔 것은 버린다. 덜 실린 상태에서 잰 자리·번호는 믿을 수 없다.
-      store.clear();
+      mark('첫 불러오기 기다림');
 
-      let before = total;
-      await sweep(feed, onProgress);
-      // 읽는 동안 위쪽 기록이 더 실려 오는 일이 있다(맨 위에 닿으면 앱이 더 받아온다).
-      // 전체 행 수가 늘었으면 늘어난 만큼 다시 훑는다.
+      // sweep 은 "맨 위에 다 올라간 시점의 전체 행 수" 를 돌려준다.
+      // 훑기가 끝난 뒤 그보다 늘었으면 읽는 도중에 더 실려 온 것이니 다시 읽는다.
+      // 맨 아래에서 잰 수와 견주면 안 된다. 맨 위로 올라가며 늘어나는 것은 정상이라
+      // 매번 두 번씩 읽게 된다.
+      let before = await sweep(feed, onProgress);
+      mark('1차 훑기');
       for (let round = 0; round < config.regrowRounds && total > before; round++) {
         lastLog.push(`읽는 중 전체가 ${before} → ${total} 행으로 늘어 다시 읽음`);
-        before = total;
-        await settle(feed, p => onProgress?.(p, 'load'));
-        // 늘어난 뒤에는 자리가 전부 밀려 있다. 앞서 읽은 것을 버리고 처음부터 다시 읽는다.
-        store.clear();
-        await sweep(feed, onProgress);
+        before = await sweep(feed, onProgress);
+        mark('다시 훑기');
       }
 
       for (let round = 0; round < 3 && missing().length; round++) {
         await fillGaps(feed, onProgress);
       }
+      mark('빠진 줄 줍기');
       lastGaps = missing();
     } finally {
       feed.style.scrollBehavior = savedFeed;
@@ -133,9 +134,12 @@ CPV.harvest = (() => {
   // 그래서 "마지막으로 본 행"을 기준으로 그 행이 화면 맨 위에 오도록 옮긴다.
   // 앱이 그린 만큼만 전진하므로 건너뛸 수가 없다.
   async function sweep(feed, onProgress) {
-    await toTop(feed);
-    // 맨 위에 닿으면 앱이 더 오래된 기록을 받아오기 시작한다. 그것도 기다린다.
-    await settle(feed, p => onProgress?.(p, 'load'));
+    // 맨 위에서 이전 내역이 다 나올 때까지 기다린다.
+    await toTop(feed, p => onProgress?.(p, 'top'));
+    // 기다리는 동안 주워 둔 것은 버린다. 이전 내역이 붙으면서 자리와 번호가 다 밀렸다.
+    store.clear();
+    // 맨 위에서 본 전체 행 수. 훑기가 끝난 뒤 이 값보다 늘었으면 읽는 도중에 더 온 것이다.
+    const topTotal = total;
 
     let guard = 0;
     let prevTop = -1;
@@ -170,17 +174,54 @@ CPV.harvest = (() => {
     }
     await goTo(feed, Math.max(0, feed.scrollHeight - feed.clientHeight));
     captureMounted();
+    return topTotal;
   }
 
-  // 맨 위로. 0번 행이 붙거나 위쪽 빈 공간이 사라질 때까지 밀어 올린다.
-  async function toTop(feed) {
-    for (let i = 0; i < 8; i++) {
-      await goTo(feed, 0);
-      if (store.has(0)) return;
-      const spacer = document.querySelector('[data-testid="transcript-spacer"]');
-      const h = spacer ? spacer.getBoundingClientRect().height : 0;
-      if (feed.scrollTop <= 2 && h < 80) return;
+  // 맨 위로.
+  //
+  // 맨 위에 닿아도 이전 내역이 바로 나오지 않는다. 앱은 그때부터 받아오기 시작하고,
+  // 받아온 만큼 위에 붙으면 보고 있던 자리가 그만큼 아래로 밀린다.
+  // 닿자마자 내려가면 아직 안 나온 앞부분을 통째로 놓친다.
+  //
+  // 그래서 "0에 붙인 채로 기다렸다가, 늘어났으면 다시 0으로" 를 더 안 늘어날 때까지
+  // 되풀이한다. 긴 대화는 한 번에 다 안 오고 여러 번에 나눠 오기 때문에,
+  // 한 번 늘어날 때마다 기다림을 처음부터 다시 센다.
+  //
+  // 0번 행이 붙었는지로 판단하면 안 된다. 행 번호가 "지금 실려 있는 목록 안에서의
+  // 자리" 라면 0번은 언제나 있어서 닿자마자 끝난 것으로 보인다.
+  async function toTop(feed, onWait) {
+    const t0 = Date.now();
+    const startTop = feed.scrollTop;
+    let quiet = 0;
+    let key = '';
+    let ticks = 0;
+    while (Date.now() - t0 < config.topMax) {
+      if (feed.scrollTop > 0) feed.scrollTop = 0;
+      // 맨 아래로 끌어당기는 동작에 계속 밀려 위로 못 가면 오래 붙들지 않는다.
+      if (++ticks > config.topStuck && startTop > 8 && feed.scrollTop > startTop - 8) {
+        lastLog.push(`위로 못 올라감 (${Math.round(feed.scrollTop)} 에서 멈춤)`);
+        return false;
+      }
+      await wait(config.settleInterval);
+      captureMounted();
+      const now = `${total}/${Math.round(feed.scrollHeight)}/${topSpacerH()}/${Math.round(feed.scrollTop)}`;
+      if (now === key) quiet++;
+      else { quiet = 0; key = now; }
+      onWait?.(Math.min(0.99, (Date.now() - t0) / config.topMax));
+      // 0 에 머물러 있고, 위쪽 빈 자리도 없고, 한동안 아무것도 안 변하면 진짜 맨 위다.
+      if (quiet >= config.topQuiet && feed.scrollTop <= 2 && topSpacerH() < 80) {
+        lastLog.push(`맨 위 도달 ${((Date.now() - t0) / 1000).toFixed(1)}초`);
+        return true;
+      }
     }
+    lastLog.push('이전 내역이 끝까지 안 나와 그대로 시작');
+    return false;
+  }
+
+  // 위쪽 빈 자리(아직 안 그린 행들이 차지하는 높이)
+  function topSpacerH() {
+    const spacer = document.querySelector('[data-testid="transcript-spacer"]');
+    return spacer ? Math.round(spacer.getBoundingClientRect().height) : 0;
   }
 
   // 빠진 줄만 다시 줍는다. 켠 뒤에 프로그램이 스스로 부른다.
@@ -308,5 +349,5 @@ CPV.harvest = (() => {
 
   function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  return { all, fillMissing, captureMounted, records, clear, coverage, missing, settle };
+  return { all, fillMissing, captureMounted, records, clear, coverage, missing, settle, toTop };
 })();

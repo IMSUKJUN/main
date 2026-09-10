@@ -107,6 +107,7 @@ const state = await page.evaluate(() => {
     본문카드묶음: document.querySelectorAll('.cpv-strip[data-kind="body"]').length,
     카운터: document.querySelector('.cpv-counter')?.textContent || null,
     수집한행: Number(root.dataset.rows), 전체행: Number(root.dataset.total),
+    걸린시간: (root.dataset.log || '').split('|'),
     빠진행: Number(root.dataset.gaps), 번호범위: root.dataset.range,
     못읽음표시: document.querySelector('.cpv-note')?.textContent || '없음',
     스크롤바: (() => {
@@ -328,6 +329,7 @@ if (await page.evaluate(() => !!document.querySelector('.cpv-root'))) {
   await page.click('.cpv-toggle');
   await page.waitForTimeout(300);
 }
+const loads = await page.evaluate(() => window.__loads || 0);
 const afterOff = await page.evaluate(() => ({
   덮개남음: !!document.querySelector('.cpv-root'),
   원본대화보임: getComputedStyle(document.querySelector('[data-testid="epitaxy-virtual-transcript"]')).visibility,
@@ -338,6 +340,7 @@ await page.screenshot({ path: path.join(shots, '06-after-off.png') });
 console.log(JSON.stringify({
   모사화면: { 전체행: mock.rows, 샷수: mock.shots, 전체높이: mock.total, 처음마운트된행: mounted },
   샷수맞음: state.본문카드묶음 === mock.shots,
+  이전내역불러온횟수: loads,
   켠뒤: state,
   가운데정렬: centering,
   휠: wheel,
